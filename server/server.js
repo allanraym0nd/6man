@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import authRoutes from './routes/auth.js'
 
 dotenv.config();
 
@@ -16,6 +17,9 @@ app.use(express.urlencoded({ extended: true }));
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sixthman')
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => console.error('❌ MongoDB Error:', err));
+
+  //routes
+  app.use('/api/auth', authRoutes)
 
 
 app.get('/api/test', (req, res) => {
