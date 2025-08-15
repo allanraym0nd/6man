@@ -4,6 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js'
 import competitionRoutes from './routes/competitionRoutes.js';
+import predictionRoutes from './routes/predictions.js';
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sixthman'
   //routes
   app.use('/api/auth', authRoutes)
   app.use('/api/competitions', competitionRoutes)
+  app.use('api/predictions',predictionRoutes)
 
 
 app.get('/api/test', (req, res) => {
