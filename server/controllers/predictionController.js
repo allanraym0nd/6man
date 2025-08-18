@@ -20,6 +20,8 @@ createUserPrediction: async(req,res) =>{
         return res.status(403).json({ error: 'You are not a member of this league' });
       }
 
+      // Check if prediction already exists for this player/game/league
+
       const existingPrediction = await Prediction.findOne({
         type: 'user',
         player_id:player.id,
@@ -31,10 +33,14 @@ createUserPrediction: async(req,res) =>{
         return res.status(400).json({ error: 'Prediction already exists for this player in this game' });
       }
 
+      // Check if game date is in the future (can't predict past games)
+
       const gameDateTime = new Date(gameDate);
       if(gameDateTime <= new Date()){
         return res.status(400).json({ error: 'Cannot predict stats for games that have already started' });
       }
+
+      // Create prediction
 
       const prediction = new Prediction({
         type:'user',
@@ -225,7 +231,7 @@ updatePredictionResult: async(req,res) => {
       }
 
       const accuracy = {}
-      const predictions = prediction.prediction;
+      const predictions = prediction.predictions;
 
       const pointsDiff = Math.abs(actualStats.points - predictions.points);
       accuracy.pointsAccuracy = Math.max(0, 100 - (pointsDiff * 10));
