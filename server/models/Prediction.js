@@ -26,7 +26,7 @@ const predictionSchema = new Schema({
         type:Date,
         required:true
     },
-    prediction:{
+    predictions:{
         points: { type: Number, required: true },
         rebounds: { type: Number, required: true },
         assists: { type: Number, required: true },
@@ -34,12 +34,12 @@ const predictionSchema = new Schema({
 
     },
     aiModel:{
-        type:String, // Which AI model made this prediction
+        type:String, 
         required:function() {return this.type === 'ai'}
     },
     confidence:{
         type:Number,
-        required: function() {return this.type === 'user'}
+        required: function() {return this.type === 'ai'}
 
     },
     actualStats:{
@@ -68,6 +68,9 @@ const predictionSchema = new Schema({
 } ,
 {timestamps:true}
 )
+
+
+//compound index to prevent duplicate predictions
 
 predictionSchema.index({gameId:1, user:1, player:1, competitionLeague:1}, {
     unique:true,
