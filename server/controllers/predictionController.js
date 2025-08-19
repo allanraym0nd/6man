@@ -121,7 +121,7 @@ getAIPredictions: async (req, res) => {
     if (date) {
       const startDate = new Date(date);
       const endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + 1);
+      endDate.setDate(endDate.getDate() + 1); // //  modifies the endDate object by adding one day to it.
       filter.gameDate = { $gte: startDate, $lt: endDate };
     }
 
@@ -206,7 +206,7 @@ getAIPredictions: async (req, res) => {
         .limit(limit * 1)
         .skip((page - 1) * limit);
 
-      const total = await Prediction.countDocuments(filter);
+      const total = await Prediction.countDocuments(filter); // uns a separate countDocuments() query using the same filter to get the total number of predictions that match the criteria.
 
       res.json({
         predictions,
