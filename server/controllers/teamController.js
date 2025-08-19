@@ -202,7 +202,31 @@ const teamController = {
         }catch(error){
              res.status(500).json({ error: error.message });
         }
+    },
+        // PUT /api/teams/:teamId/stats - Update team stats
+  updateTeamStats: async (req, res) => {
+    try {
+      const { teamId } = req.params;
+      const { stats } = req.body;
+
+      const team = await Team.findOneAndUpdate(
+        { teamId },
+        { stats },
+        { new: true }
+      );
+
+      if (!team) {
+        return res.status(404).json({ error: 'Team not found' });
+      }
+
+      res.json({
+        message: 'Team stats updated',
+        team
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
     }
+}
 }
 
 export default teamController;
