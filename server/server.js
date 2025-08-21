@@ -9,6 +9,7 @@ import predictionRoutes from './routes/predictionRoutes.js';
 // import teamRoutes from './routes/teamRoutes.js';
 import playerRoutes from './routes/players.js';
 import playerStatsRoutes from './routes/playerStats.js';
+import userRoutes from './routes/userRoutes.js'
 
 dotenv.config();
 
@@ -32,6 +33,7 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sixthman'
   // app.use('api/teams',teamRoutes)
   app.use('/api/players', playerRoutes);
   app.use('/api/playerstats', playerStatsRoutes);   
+  app.use('/api/users', userRoutes)
 
 
 app.get('/api/test', (req, res) => {
