@@ -273,46 +273,62 @@ const leaderBoardController = {
 
              const users = await User.find().select('username').limit(100)
 
-             const streakData = await Promise.all(
-                users.map(async(user) => {
-                    const predictions = await Prediction.find({
-                        user:user._id,
-                        type:'user',
-                        actualStats: {$exists: true}
-                    })
-                    .sort({createdAt: -1})
-                    .limit(50)
-                    .select('accuracy.overallScore createdAt')
+            const streakData = await Promise.all(
+        users.map(async (user) => {
+          const predictions = await Prediction.find({
+            user: user._id,
+            type: 'user',
+            actualStats: { $exists: true }
+          })
+          .sort({ createdAt: -1 })
+          .limit(50)
+          .select('accuracy.overallScore createdAt');
 
-                    let currentStreak = 0;
-                    let bestStreak = 0;
-                    let tempStreak = 0;
+          let currentStreak = 0;
+          let bestStreak = 0;
+          let tempStreak = 0;
 
-                    predictions.forEach((prediction, index) => {
-                        const isCorrect = prediction.accuracy?.overallScore > 0;
-                        
-                        if(isCorrect) {
-                            tempStreak++;
-                            if(index === 0) currentStreak = tempStreak
-                        } else {
-                            if (index === 0) currentStreak = 0;
-                        }
+          predictions.forEach((prediction, index) => {
+            const isCorrect = prediction.accuracy?.overallScore > 0;
 
-                        bestStreak = Math.max(bestStreak ,tempStreak) // ensures that if the user's best streak is a "current" streak, it's correctly captured in bestStreak after the loop finishes.
+            if (isCorrect) {
+              tempStreak++;
+              if (index === 0) currentStreak = tempStreak;
+            } else {
+              if (index === 0) currentStreak = 0;
+              bestStreak = Math.max(bestStreak, tempStreak);
+              tempStreak = 0;
+            }
+          });
 
-                        return {
-                            userId: user._id,
-                            username: user.username,
-                            currentStreak,
-                            bestStreak
-                        }
-                        
-                    })
-                })
-             )
+          bestStreak = Math.max(bestStreak, tempStreak);
 
+          return {
+            userId: user._id,
+            username: user.username,
+            currentStreak,
+            bestStreak
+          };
+        })
+      );
+
+      const sortedStreaks = streakData
+      .filter(data => (type === 'current' ? data.currentStreak > 0 : data.bestStreak > 0))
+      .sort((a,b) => (type === 'current' ? b.currentStreak - a.currentStreak : b.bestStreak - a.bestStreak))
+      .slice(0, parseInt(limit))
+
+      res.json({
+        type,
+        leaderboard: sortedStreaks.map((user, index) => ({
+            ...user,
+            rank: index + 1
+
+        }))
+      })
         }catch(error){
-
+            res.status(500).json({ error: error.message });
         }
     }
 }
+
+export default leaderBoardController;
