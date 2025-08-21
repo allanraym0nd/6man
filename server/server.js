@@ -10,6 +10,8 @@ import predictionRoutes from './routes/predictionRoutes.js';
 import playerRoutes from './routes/players.js';
 import playerStatsRoutes from './routes/playerStats.js';
 import userRoutes from './routes/userRoutes.js'
+import leaderboardRoutes from './routes/leaderboard.js';
+import statsRoutes from './routes/stats.js';
 
 dotenv.config();
 
@@ -34,6 +36,8 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sixthman'
   app.use('/api/players', playerRoutes);
   app.use('/api/playerstats', playerStatsRoutes);   
   app.use('/api/users', userRoutes)
+  app.use('/api/leaderboard', leaderboardRoutes);
+  app.use('/api/stats', statsRoutes);
 
 
 app.get('/api/test', (req, res) => {
