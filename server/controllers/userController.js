@@ -117,9 +117,149 @@ const userController = {
              .skip(parseInt(page) - 1) * (parseInt(limit))
              .populate('league','name')
 
+               const total = await Prediction.countDocuments(filter);
+
+               res.json({
+                predictions,
+                pagination:{ 
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total,
+                    pages: Math.ceil(total / parseInt(limit))
+                }
+               })
         }catch(error){
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    getPerfomanceAnalytics: async(req,res) => {
+
+        try {
+        const userId = req.user.id;
+
+        const predictions = await Prediction.find({
+        user: userId,
+        type: 'user',
+        actualStats: { $exists: true }
+      });
+
+      if (predictions.length === 0) {
+        return res.json({
+          message: 'No completed predictions found',
+          analytics: null
+        });
+      }
+
+          // Performance by stat type
+      const statAnalytics = {
+        points: { correct: 0, total: 0, accuracy: 0 },
+        rebounds: { correct: 0, total: 0, accuracy: 0 },
+        assists: { correct: 0, total: 0, accuracy: 0 }
+      };
+
+      predictions.forEach(prediction => {
+        if(prediction.accuracy) {
+            statAnalytics[stat].total++;
+        if(prediction.accuracy([`${stat}Accurate`])) {
+            statAnalytics[stat].correct++;
+        }
+        }
+      })
+
+      Object.keys(statAnalytics).forEach(stat => {
+        const { correct, total } = statAnalytics[stat];
+        statAnalytics[stat].accuracy = total > 0 
+          ? ((correct / total) * 100).toFixed(1)
+          : 0;
+      });
+
+      const recentPredictions = predictions
+      .slice(-10)
+      .map(p =>({
+        date: p.createdAt,
+        player: p.player.name,
+        accuracy:  p.accuracy?.overallScore || 0
+      }))
+
+
+      res.json({
+        analytics: {
+          overall: {
+            totalPredictions: predictions.length,
+            averageAccuracy: (predictions.reduce((sum, p) => sum + (p.accuracy?.overallScore || 0), 0) / predictions.length).toFixed(2)
+          },
+          byStatType: statAnalytics,
+          recentPerformance: recentPredictions
+        }
+      });
+
+    }catch(error){
+        res.status(500).json({ error: error.message });
+    }
+
+    },
+
+    deleteAccount: async(req,res) => {
+        try{
+            const userId = req.user.id
+
+            await LeagueMembership.deleteMany({user: userId})
+
+            await Prediction.deleteMany({user: userId});
+
+            await User.findByIdAndDelete(userId)
+
+            res.json({
+                message: 'Account deleted successfully'
+            });
+
+        }catch(error){
+            res.status(500).json({ error: error.message });
 
         }
+    }, 
+
+    getPublicProfile: async(req,res) => {
+        try{
+
+            const {userId} = req.params
+
+            const user = await User.findById(userId)
+            .select('username createdAt');
+
+               if (!user) {
+                    return res.status(404).json({ error: 'User not found' });
+                }
+
+                const totalPredictions = await Prediction.countDocuments({
+                     user: userId,
+                     type: 'user'
+                    
+                })
+
+                const completedPredictions = await Prediction.countDocuments({
+                    user: userId,
+                    type: 'user',
+                    actualStats: { $exists: true }
+                });
+
+                res.json({
+                    user:{
+                        id: user._id,
+                        username: user.username,
+                        joinedAt: user.createdAt
+                    },
+                    stats: totalPredictions,
+                    completedPredictions
+                })
+        }catch(error){
+            res.status(500).json({ error: error.message });
+        }
     }
+
+
 }
+
+export default userController;
 
