@@ -6,7 +6,7 @@ const userController = {
 
     getUserProfile: async(req,res) => {
         try{
-            const user = await User.findById(req.user.id) // attached from JWT library
+            const user = await User.findById(req.user.id) // attached from JWT library ::req.user.id is the user ID that was stored in the JWT token when they logged in,
             .select('-password')
 
             if(!user){
@@ -23,7 +23,7 @@ const userController = {
         try{
             const {username, email} = req.body
 
-            const user = await User.findById(
+            const user = await User.findByIdAndUpdate(
                 req.user.id,
                 {username,email},
                 {
@@ -114,7 +114,7 @@ const userController = {
              const predictions = await Prediction.find(filter)
              .sort({ createdAt: -1 })
              .limit(parseInt(limit))
-             .skip(parseInt(page) - 1) * (parseInt(limit))
+             .skip((parseInt(page) - 1) * parseInt(limit))
              .populate('league','name')
 
                const total = await Prediction.countDocuments(filter);
