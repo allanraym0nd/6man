@@ -1,190 +1,49 @@
+// controllers/predictionController.js
 import Prediction from '../models/Prediction.js';
+import User from '../models/User.js';
 import CompetitionLeague from '../models/CompetitionLeague.js';
-import LeagueMembership from '../models/LeagueMembership.js';
 
 const predictionController = {
-  // POST /api/predictions/user 
+  // POST /api/predictions/user
   createUserPrediction: async (req, res) => {
     try {
-      const { competitionLeagueId, gameId, gameDate, player, predictions } = req.body;
+      const { gameId, gameDate, player, predictions, competitionLeague } = req.body;
       const userId = req.user.id;
 
+      // Verify league membership if league is specified
+      if (competitionLeague) {
+        const membership = await LeagueMembership.findOne({
+          user: userId,
+          competitionLeague: competitionLeague
+        });
+
+        if (!membership) {
+          return res.status(403).json({ error: 'Not a member of this league' });
+        }
+      }
+
       
-      const membership = await LeagueMembership.findOne({
-        user: userId,
-        competitionLeague: competitionLeagueId,
-        status: 'active'
-      });
-
-      if (!membership) {
-        return res.status(403).json({ error: 'You are not a member of this league' });
-      }
-
-      // Check if prediction already exists
-
-      const existingPrediction = await Prediction.findOne({
-        type: 'user',
-        user: userId,
-        gameId,
-        'player.id': player.id,
-        competitionLeague: competitionLeagueId
-      });
-
-      if (existingPrediction) {
-        return res.status(400).json({ error: 'Prediction already exists for this player in this game' });
-      }
-
-      // Check if game date is in the future (can't predict past games)
-      const gameDateTime = new Date(gameDate);
-      if (gameDateTime <= new Date()) {
-        return res.status(400).json({ error: 'Cannot predict stats for games that have already started' });
-      }
-
-      // create prediction
       const prediction = new Prediction({
         type: 'user',
         user: userId,
-        competitionLeague: competitionLeagueId,
+        competitionLeague,
         gameId,
-        gameDate: gameDateTime,
-        player,
-        predictions
-      });
-
-      await prediction.save();
-
-      // Update stats
-      await CompetitionLeague.findByIdAndUpdate(competitionLeagueId, {
-        $inc: { 'stats.totalPredictions': 1 }
-      });
-
-      await LeagueMembership.findOneAndUpdate(
-        { user: userId, competitionLeague: competitionLeagueId },
-        { $inc: { 'stats.predictions': 1 } }
-      );
-
-      res.status(201).json({
-        message: 'User prediction created successfully',
-        prediction
-      });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  },
-
-  // POST /api/predictions/ai 
-  createAIPrediction: async (req, res) => {
-    try {
-      const { gameId, gameDate, player, predictions, aiModel, confidence } = req.body;
-
-      // Check if AI prediction exists for this player/game
-      const existingPrediction = await Prediction.findOne({
-        type: 'ai',
-        gameId,
-        'player.id': player.id
-      });
-
-      if (existingPrediction) {
-        return res.status(400).json({ error: 'AI prediction already exists for this player in this game' });
-      }
-
-      // Create AI prediction
-      const prediction = new Prediction({
-        type: 'ai',
-        gameId,
-        gameDate: new Date(gameDate),
+        gameDate,
         player,
         predictions,
-        aiModel,
-        confidence
+        status: 'pending'
       });
 
       await prediction.save();
 
       res.status(201).json({
-        message: 'AI prediction created successfully',
+        message: 'Prediction created successfully',
         prediction
       });
     } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  },
-
-// GET /api/predictions/ai 
-getAIPredictions: async (req, res) => {
-  try {
-    const { gameId, playerId, date, limit = 20, page = 1 } = req.query;
-
-    const filter = { type: 'ai' };
-    if (gameId) filter.gameId = gameId;
-    if (playerId) filter['player.id'] = playerId;
-    if (date) {
-      const startDate = new Date(date);
-      const endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + 1); // //  modifies the endDate object by adding one day to it.
-      filter.gameDate = { $gte: startDate, $lt: endDate };
-    }
-
-    const aiPredictions = await Prediction.find(filter)
-      .sort({ gameDate: -1, confidence: -1 }) // highest confidence first
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
-
-    const total = await Prediction.countDocuments(filter);
-
-    res.json({
-      aiPredictions,
-      pagination: {
-        current: page,
-        pages: Math.ceil(total / limit),
-        total
+      if (error.code === 11000) {
+        return res.status(400).json({ error: 'You have already made a prediction for this player in this game' });
       }
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-
-},
-
-
-  // GET /api/predictions/compare/:gameId/:playerId 
-  comparePredictions: async (req, res) => {
-    try {
-      const { gameId, playerId } = req.params;
-      const { userId } = req.query;
-
-      const filter = { gameId, 'player.id': playerId };
-
-      
-      const aiPrediction = await Prediction.findOne({ ...filter, type: 'ai' });
-
-      
-      let userPrediction = null;
-      if (userId) {
-        userPrediction = await Prediction.findOne({ 
-          ...filter, 
-          type: 'user', 
-          user: userId 
-        }).populate('user', 'username');
-      }
-
-      // Get all user predictions for this player/game (for comparison)
-      const allUserPredictions = await Prediction.find({ 
-        ...filter, 
-        type: 'user' 
-      }).populate('user', 'username');
-
-      res.json({
-        aiPrediction,
-        userPrediction,
-        allUserPredictions,
-        comparison: aiPrediction && userPrediction ? {
-          pointsDiff: Math.abs(aiPrediction.predictions.points - userPrediction.predictions.points),
-          reboundsDiff: Math.abs(aiPrediction.predictions.rebounds - userPrediction.predictions.rebounds),
-          assistsDiff: Math.abs(aiPrediction.predictions.assists - userPrediction.predictions.assists)
-        } : null
-      });
-    } catch (error) {
       res.status(500).json({ error: error.message });
     }
   },
@@ -192,87 +51,256 @@ getAIPredictions: async (req, res) => {
   // GET /api/predictions/user/:userId 
   getUserPredictions: async (req, res) => {
     try {
-      const userId = req.params.userId;
-      const { leagueId, status, limit = 20, page = 1 } = req.query;
+      const { userId } = req.params;
+      const { status, gameId, limit = 20 } = req.query;
 
-      const filter = { type: 'user', user: userId };
-      if (leagueId) filter.competitionLeague = leagueId;  //  checks if a leagueId exists. If it does, it adds a new property to the filter object: competitionLeague
-      if (status) filter.status = status; // this line adds a status property to the filter object if a status is provided. 
-
+      const filter = { user: userId, type: 'user' };
+      if (status) filter.status = status;
+      if (gameId) filter.gameId = gameId;
 
       const predictions = await Prediction.find(filter)
         .populate('competitionLeague', 'name')
-        .sort({ gameDate: -1 })
-        .limit(limit * 1)
-        .skip((page - 1) * limit);
-
-      const total = await Prediction.countDocuments(filter); // uns a separate countDocuments() query using the same filter to get the total number of predictions that match the criteria.
+        .sort({ createdAt: -1 })
+        .limit(parseInt(limit));
 
       res.json({
         predictions,
-        pagination: {
-          current: page,
-          pages: Math.ceil(total / limit),
-          total
-        }
+        total: predictions.length
       });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
   },
 
-  // PUT /api/predictions/:id/result - Update prediction with actual results
-  updatePredictionResult: async (req, res) => {
+  // POST /api/predictions/ai
+  createAIPrediction: async (req, res) => {
     try {
-      const predictionId = req.params.id;
-      const { actualStats } = req.body;
+      const { gameId, gameDate, player, predictions, aiModel, confidence } = req.body;
 
-      const prediction = await Prediction.findById(predictionId);
-      if (!prediction) {
-        return res.status(404).json({ error: 'Prediction not found' });
+      const aiPrediction = new Prediction({
+        type: 'ai',
+        gameId,
+        gameDate,
+        player,
+        predictions,
+        aiModel,
+        confidence,
+        status: 'pending'
+      });
+
+      await aiPrediction.save();
+
+      res.status(201).json({
+        message: 'AI prediction created successfully',
+        prediction: aiPrediction
+      });
+    } catch (error) {
+      if (error.code === 11000) {
+        return res.status(400).json({ error: 'AI prediction already exists for this player in this game' });
       }
+      res.status(500).json({ error: error.message });
+    }
+  },
 
-      // Calculate accuracy
-      const accuracy = {};
-      const predictions = prediction.predictions;
+  // GET /api/predictions/ai 
+  getAIPredictions: async (req, res) => {
+    try {
+      const { gameId, aiModel, limit = 20 } = req.query;
 
-      const pointsDiff = Math.abs(actualStats.points - predictions.points);
-      accuracy.pointsAccuracy = Math.max(0, 100 - (pointsDiff * 10));
+      const filter = { type: 'ai' };
+      if (gameId) filter.gameId = gameId;
+      if (aiModel) filter.aiModel = aiModel;
 
-      const reboundsDiff = Math.abs(actualStats.rebounds - predictions.rebounds);
-      accuracy.reboundsAccuracy = Math.max(0, 100 - (reboundsDiff * 15));
+      const predictions = await Prediction.find(filter)
+        .sort({ createdAt: -1 })
+        .limit(parseInt(limit));
 
-      const assistsDiff = Math.abs(actualStats.assists - predictions.assists);
-      accuracy.assistsAccuracy = Math.max(0, 100 - (assistsDiff * 15));
+      res.json({
+        predictions,
+        total: predictions.length
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
 
-      accuracy.overallAccuracy = (accuracy.pointsAccuracy + accuracy.reboundsAccuracy + accuracy.assistsAccuracy) / 3;
+  // GET /api/predictions/compare/:gameId/:playerId
+  comparePredictions: async (req, res) => {
+    try {
+      const { gameId, playerId } = req.params;
+      const { userId } = req.query;
 
-      const pointsEarned = Math.round(accuracy.overallAccuracy / 10);
+    
+      const userPrediction = await Prediction.findOne({
+        type: 'user',
+        user: userId,
+        gameId: gameId,
+        'player.id': playerId
+      });
 
-      // Update prediction
-      prediction.actualStats = actualStats;
-      prediction.accuracy = accuracy;
-      prediction.pointsEarned = pointsEarned;
-      prediction.status = 'completed';
+   
+      const aiPrediction = await Prediction.findOne({
+        type: 'ai',
+        gameId: gameId,
+        'player.id': playerId
+      });
 
-      await prediction.save();
-
-      
-      if (prediction.type === 'user') {
-        await LeagueMembership.findOneAndUpdate(
-          { user: prediction.user, competitionLeague: prediction.competitionLeague },
-          { 
-            $inc: { 
-              'stats.correctPredictions': pointsEarned > 5 ? 1 : 0,
-              'stats.points': pointsEarned
-            }
-          }
-        );
+      if (!userPrediction && !aiPrediction) {
+        return res.status(404).json({ error: 'No predictions found for this game/player combination' });
       }
 
       res.json({
-        message: 'Prediction result updated successfully',
-        prediction
+        gameId,
+        player: userPrediction?.player || aiPrediction?.player,
+        userPrediction: userPrediction || null,
+        aiPrediction: aiPrediction || null,
+        comparison: userPrediction && aiPrediction ? {
+          points: {
+            user: userPrediction.predictions.points,
+            ai: aiPrediction.predictions.points,
+            difference: Math.abs(userPrediction.predictions.points - aiPrediction.predictions.points)
+          },
+          rebounds: {
+            user: userPrediction.predictions.rebounds,
+            ai: aiPrediction.predictions.rebounds,
+            difference: Math.abs(userPrediction.predictions.rebounds - aiPrediction.predictions.rebounds)
+          },
+          assists: {
+            user: userPrediction.predictions.assists,
+            ai: aiPrediction.predictions.assists,
+            difference: Math.abs(userPrediction.predictions.assists - aiPrediction.predictions.assists)
+          }
+        } : null
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+
+  // PUT /api/predictions/:id/result 
+  updatePredictionResult: async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { actualStats } = req.body;
+
+        const prediction = await Prediction.findById(id);
+        if (!prediction) {
+          return res.status(404).json({ error: 'Prediction not found' });
+        }
+
+        // Helper function to calculate category score
+        const calculateCategoryScore = (predicted, actual, weight, maxPoints = 10) => {
+          const difference = Math.abs(predicted - actual);
+          const score = weight * Math.max(0, maxPoints - difference);
+          return parseFloat(score.toFixed(2));
+        };
+
+        // Calculate scores using the new system
+        const pointsScore = calculateCategoryScore(
+          prediction.predictions.points, 
+          actualStats.points, 
+          1.0
+        );
+
+        const reboundsScore = calculateCategoryScore(
+          prediction.predictions.rebounds, 
+          actualStats.rebounds, 
+          0.8
+        );
+
+        const assistsScore = calculateCategoryScore(
+          prediction.predictions.assists, 
+          actualStats.assists, 
+          0.7
+        );
+
+        const totalScore = pointsScore + reboundsScore + assistsScore;
+        const maxPossibleScore = (1.0 * 10) + (0.8 * 10) + (0.7 * 10); // 25 points max
+
+        // Store individual scores and overall accuracy
+        const accuracy = {
+          pointsAccuracy: pointsScore,
+          reboundsAccuracy: reboundsScore, 
+          assistsAccuracy: assistsScore,
+          overallAccuracy: totalScore / maxPossibleScore // Percentage (0-1)
+        };
+
+        const pointsEarned = totalScore;
+
+        // Update prediction
+        const updatedPrediction = await Prediction.findByIdAndUpdate(
+          id,
+          {
+            actualStats,
+            accuracy,
+            pointsEarned,
+            status: 'completed'
+          },
+          { new: true }
+        );
+
+        res.json({
+          message: 'Prediction result updated successfully',
+          prediction: updatedPrediction,
+          scoring: {
+            pointsScore: pointsScore,
+            reboundsScore: reboundsScore,
+            assistsScore: assistsScore,
+            totalScore: totalScore,
+            maxPossible: maxPossibleScore,
+            accuracy: (totalScore / maxPossibleScore * 100).toFixed(1) + '%'
+          }
+        });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    },
+
+  // GET /api/predictions/game/:gameId 
+  getGamePredictions: async (req, res) => {
+    try {
+      const { gameId } = req.params;
+      const { type, playerId } = req.query;
+
+      const filter = { gameId };
+      if (type) filter.type = type;
+      if (playerId) filter['player.id'] = playerId;
+
+      const predictions = await Prediction.find(filter)
+        .populate('user', 'username')
+        .populate('competitionLeague', 'name')
+        .sort({ createdAt: -1 });
+
+      res.json({
+        gameId,
+        predictions,
+        total: predictions.length
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+
+  // DELETE /api/predictions/:id - Delete a prediction (before game starts)
+  deletePrediction: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.id;
+
+      const prediction = await Prediction.findOne({ 
+        _id: id, 
+        user: userId,
+        status: 'pending'
+      });
+
+      if (!prediction) {
+        return res.status(404).json({ error: 'Prediction not found or cannot be deleted' });
+      }
+
+      await Prediction.findByIdAndDelete(id);
+
+      res.json({
+        message: 'Prediction deleted successfully'
       });
     } catch (error) {
       res.status(500).json({ error: error.message });
