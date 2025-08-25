@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const predictionSchema = new mongoose.Schema({
 
-  type: {
+type: {
     type: String,
     enum: ['user', 'ai'],
     required: true
@@ -28,7 +28,8 @@ const predictionSchema = new mongoose.Schema({
   player: {
     id: { type: String, required: true },
     name: { type: String, required: true },
-    team: { type: String, required: true }
+    team: { type: String, required: true },
+    position: {type:String}
   },
   predictions: {
     points: { type: Number, required: true },
