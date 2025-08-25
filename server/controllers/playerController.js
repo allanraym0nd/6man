@@ -153,7 +153,7 @@ const playerController =  {
                  return res.status(400).json({ error: 'Invalid stat parameter' });
             }
 
-            const sortField = 'seasonStats.averages.${stat}'
+            const sortField = `seasonStats.averages.${stat}`
 
             const leaders = await Player.find({
                 status:'active',
