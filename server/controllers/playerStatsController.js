@@ -81,7 +81,7 @@ const playerStatsController = {
             const {gameId} = req.params
             const {team} = req.query
 
-            const filter = (gameId)
+            const filter = {gameId}
             if(team) filter['player.team'] = team
 
             const gameStats = await PlayerStats.find(filter)
@@ -238,7 +238,7 @@ const playerStatsController = {
                 recentForm: recentStats,
                 seasonAverages: seasonAverages[0] || null,
                 contextForPrediction: {
-                    gamesPlayed: seasonSverages[0]?.gamesPlayed || 0,
+                    gamesPlayed: seasonAverages[0]?.gamesPlayed || 0,
                     recentTrend: recentStats.length >= 3 ? 'available' : 'insufficient_data',
                     healthStatus: player?.status || 'unknown'
                 }
