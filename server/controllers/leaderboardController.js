@@ -41,8 +41,9 @@ const leaderBoardController = {
                 },
                 { $unwind: '$user' }, //  $unwind stage deconstructs the new user array into a single document for each user. This makes it easier to access the user's data directly in the next stage.
                 {
+                    // Reshapes the documents to clean up the output.selects and renames fields to prepare the final output.
                     $project:{
-                        _id:0,
+                        _id:0, // excludes id from the output
                         userId: '$_id',
                         username: '$user.username',
                         totalPredictions:1,
@@ -153,6 +154,7 @@ const leaderBoardController = {
                     }
                 },
                 {
+                    // creates a unique group for every instance where a user and an AI made a prediction on the same player in the same game
                     $group:{
                         _id:{
                             user: '$user',
@@ -163,26 +165,28 @@ const leaderBoardController = {
                         userPrediction:{
                             $first:{
                                 $cond: [
-                                    {$eq: ['$type', '$user']},
+                                    {$eq: ['$type', '$user']}, 
                                     '$accuracy.overallScore',
                                     null
                                 ]
                             }
                         }, 
                         aiPrediction:{
-                             $first: {
-                $cond: [
-                  { $eq: ['$type', 'ai'] },
-                  '$accuracy.overallScore',
-                  null
-                ]
-              }
+                                $first: {
+                                    $cond: [
+                                    { $eq: ['$type', 'ai'] },
+                                    '$accuracy.overallScore',
+                                    null
+                                    ]
+                                 }
                         }
 
                     }
                     
                 },
+
                 {
+                    // removes any groups where either the userPrediction or aiPrediction field is missing 
                     $match: {
                         userPrediction: { $ne: null },
                         aiPrediction: { $ne: null }
@@ -195,7 +199,7 @@ const leaderBoardController = {
                         userWins:{
                             $sum:{
                                 $cond:[
-                                    {$gt: ['$userPrediction', '$aiPrediction']},
+                                    {$gt: ['$userPrediction', '$aiPrediction']}, 
                                     1,
                                     0
                                 ]
@@ -223,7 +227,7 @@ const leaderBoardController = {
                             _id:0,
                             userId:'$_id',
                             username:'user.username',
-                             comparisons: 1,
+                             comparisons: 1, // explicitly includes this field in the output. 
                              userWins: 1,
                              winRate: {
                                 $round: [
@@ -238,7 +242,7 @@ const leaderBoardController = {
 
                     {
                         $match: {
-                            comparisons: {$gte:10}
+                            comparisons: {$gte:10} // removes users who dont meet minimum number of comparisons
                         }
                     },
                      {
