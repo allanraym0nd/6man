@@ -17,8 +17,8 @@ const statsController = {
             })
 
             const avgAccuracy = await Prediction.aggregate([
-                {$match: {type: 'user', 'accuracy.overallScore': {$exists:true}}},
-                {$group:  {_id: null, avgAccuracy: {$avg: '$accuracy.overallScore'}}} // This stage groups all the documents into a single group (_id: null) and calculates the average of the overallScore field.
+                {$match: {type: 'user', 'accuracy.overallAccuracy': {$exists:true}}},
+                {$group:  {_id: null, avgAccuracy: {$avg: '$accuracy.overallAccuracy'}}} // This stage groups all the documents into a single group (_id: null) and calculates the average of the overallScore field.
             ])
 
             res.json({
@@ -42,13 +42,13 @@ const statsController = {
                 {
                     $match:{
                         type:'user',
-                        'accuracy.overallScore': {$exists:true}
+                        'accuracy.overallAccuracy': {$exists:true}
                     }
                 },
                 {
                     $group:{
                         _id: '$player_position',
-                        avgAccuracy: {$avg: 'accuracy.overallScore'},
+                        avgAccuracy: {$avg: 'accuracy.overallAccuracy'},
                         totalPredictions: { $sum: 1 }
                     }
                 },
@@ -76,8 +76,9 @@ const statsController = {
            ])
 
            const sevenDaysAgo = new Date()
-           sevenDaysAgo.setDate(sevenDaysAgo() - 7) // This creates a Date object representing exactly seven days ago.
+           sevenDaysAgo.setDate(sevenDaysAgo().getDate() - 7) // This creates a Date object representing exactly seven days ago.
 
+           //fucking brilliant
            const dailyVolume = await Prediction.aggregate([
             {
                 $match: {
@@ -156,7 +157,7 @@ const statsController = {
     getLeagueImpactStats: async(req,res) => {
         try{
 
-            const leagueMembers = await Prediction.distinct('user')
+            const leagueMembers = await LeagueMembership.distinct('user')
             const leagueMemberAccuracy = await Prediction.aggregate([
                 {
                     $match:{
@@ -196,7 +197,7 @@ const statsController = {
                     leagueImpact:{
                         leagueMembers: leagueMemberAccuracy[0] || { avgAccuracy: 0, totalPredictions: 0 },
                         soloUsers: soloUserAccuracy[0] || { avgAccuracy: 0, totalPredictions: 0 },
-                        improvementPercentage: leagueMembersAccuracy[0] && soloUserAccuracy[0]
+                        improvementPercentage: leagueMemberAccuracy[0] && soloUserAccuracy[0]
                         ? (((leagueMemberAccuracy[0].avgAccuracy - soloUserAccuracy[0].avgAccuracy) / soloUserAccuracy[0].averageAccuracy)*100)
                         : 0
                     } 
