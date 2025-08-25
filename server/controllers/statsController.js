@@ -199,16 +199,11 @@ const statsController = {
         {
           $group: {
             _id: null,
-            pointsSuccess: {
-              $avg: { $cond: ['$accuracy.pointsAccuracy', 1, 0] }
-            },
-            reboundsSuccess: {
-              $avg: { $cond: ['$accuracy.reboundsAccuracy', 1, 0] }
-            },
-            assistsSuccess: { 
-              $avg: { $cond: ['$accuracy.assistsAccuracy', 1, 0] }
-            },
-            totalPredictions: { $sum: 1 }
+            avgPointsScore:{$avg:'$accuracy.pointsAccuracy'},
+            avgReboundsScore: { $avg: '$accuracy.reboundsAccuracy' },
+            avgAssistsScore: { $avg: '$accuracy.assistsAccuracy' },
+            totalPredictions: {$sum: 1} // counts number of documents in a group
+         
           }
         }
       ]);
@@ -216,15 +211,32 @@ const statsController = {
       const difficulty = statDifficulty[0] || {};
       
       const rankings = [
-        { stat: 'points', successRate: ((difficulty.pointsSuccess || 0) * 100).toFixed(1) },
-        { stat: 'rebounds', successRate: ((difficulty.reboundsSuccess || 0) * 100).toFixed(1) },
-        { stat: 'assists', successRate: ((difficulty.assistsSuccess || 0) * 100).toFixed(1) }
-      ].sort((a, b) => b.successRate - a.successRate);
+        {
+            stat:'points',
+            avgScore:(difficulty.avgPointsScore || 0).toFixed(2),
+            difficulty:'Hard',
+            successRate:((difficulty.avgPointsScore || 0)/10 *100).toFixed(1) + "%"
+        },
+            {
+            stat:'rebounds',
+            avgScore:(difficulty.avgReboundsScore || 0).toFixed(2),
+            difficulty:'Medium',
+            successRate:((difficulty.avgReboundsScore || 0)/10 *100).toFixed(1) + "%"
+        },
+            {
+            stat:'assists',
+            avgScore:(difficulty.avgAssistsScore || 0).toFixed(2),
+            difficulty:'Medium',
+            successRate:((difficulty.avgAssistsScore || 0)/10 *100).toFixed(1) + "%"
+        },
 
+      ].sort((a,b) => parseFloat(b.avgScore) - parseFlooat(a.avgScore)) // sort from easiest stat to hardest
+    
       res.json({
         predictionDifficulty: {
           easiestToHardest: rankings,
-          totalAnalyzed: difficulty.totalPredictions || 0
+          totalAnalyzed: difficulty.totalPredictions || 0,
+          explanation:"Higher average scores indicatae easier categories to predict"
         }
       });
     } catch (error) {
