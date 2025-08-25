@@ -1,7 +1,7 @@
 import mongoose from 'mongoose'
 
 const playerStatsSchema = new mongoose.schema({
-  playerId:{
+playerId:{
      type:String,
      required:true,
      ref:'Player'
