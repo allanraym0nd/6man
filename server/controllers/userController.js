@@ -46,54 +46,61 @@ const userController = {
         }
     },
 
-    getUserStats: async(req,res) => {
-        try{
+    // GET /api/users/stats
+    getUserStats: async (req, res) => {
+        try {
+            const userId = req.user.id;
 
-            const userId = req.user.id
-            const totalPredictions = await Prediction.countDocuments({
-                    user:userId,
-                    type:'user'
-                });
+            
+            const totalPredictions = await Prediction.countDocuments({ 
+            user: userId,
+            type: 'user'
+            });
+
+            // Get completed predictions (with results)
             const completedPredictions = await Prediction.find({
-                user:userId,
-                type:'user',
-                actualStats: {$exists: true}
-            })
-            //calculate accuracy
-            let correctPredictions = 0;
-            let totalAccuracy = 0;
-            completedPredictions.forEach(prediction => {
-                if(prediction.accuracy && prediction.accuracy.overallScore > 0){
-                    correctPredictions ++
-                    totalAccuracy += prediction.accuracy.overallScore; //adds the score of the current prediction to a running total, which will be used to calculate the average.
-                }
-            })
+            user: userId,
+            type: 'user',
+            actualStats: { $exists: true }
+            });
 
-              const averageAccuracy = completedPredictions.length > 0 
-                ? (totalAccuracy / completedPredictions.length).toFixed(2)
-                : 0;
+            // Calculate accuracy
+            const totalAccuracy = completedPredictions.reduce((sum, prediction) => {
+            return sum + (prediction.accuracy?.overallAccuracy || 0);
+            }, 0);
 
-            const leagueMembership = await LeagueMembership.find({user:userId})
-            .populate('league','name')
-            .select('league rank points wins losses accuracy');
+            const averageAccuracy = completedPredictions.length > 0 
+            ? (totalAccuracy / completedPredictions.length).toFixed(2)
+            : 0;
+
+            // Count correct predictions - for success rate
+            const correctPredictions = completedPredictions.filter(prediction => 
+            prediction.accuracy?.overallAccuracy > 0
+            ).length;
+
+            // Get league memberships
+            const leagueMemberships = await LeagueMembership.find({ user: userId })
+            .populate('competitionLeague', 'name')  
+            .select('competitionLeague stats');
 
             res.json({
-                leagues:leagueMembership,
-                stats:{
-                    totalPredictions,
-                    completedPredictions: completedPredictions.length,
-                    correctPredictions,
-                    averageAccuracy: parseFloat(averageAccuracy),
-                     successRate: completedPredictions.length > 0 
-                        ? ((correctPredictions / completedPredictions.length) * 100).toFixed(1)
-                        : 0
-                }      
-            })
-      
-        }catch(error) {
+            stats: {
+                totalPredictions,
+                completedPredictions: completedPredictions.length,
+                correctPredictions,
+                averageAccuracy: parseFloat(averageAccuracy),
+                successRate: completedPredictions.length > 0 
+                ? ((correctPredictions / completedPredictions.length) * 100).toFixed(1)
+                : 0
+            },
+            leagues: leagueMemberships
+            });
+        } catch (error) {
             res.status(500).json({ error: error.message });
         }
-    },
+        },
+
+        
 
     getPredictionHistory: async(req,res) => {
         try{
@@ -132,73 +139,87 @@ const userController = {
             res.status(500).json({ error: error.message });
         }
     },
-
-    getPerfomanceAnalytics: async(req,res) => {
-
+     
+        // get user prefomance
+     getPerformanceAnalytics: async (req, res) => {
         try {
-        const userId = req.user.id;
+            const userId = req.user.id;
 
-        const predictions = await Prediction.find({
-        user: userId,
-        type: 'user',
-        actualStats: { $exists: true }
-      });
+            const predictions = await Prediction.find({
+            user: userId,
+            type: 'user',
+            actualStats: { $exists: true }
+            });
 
-      if (predictions.length === 0) {
-        return res.json({
-          message: 'No completed predictions found',
-          analytics: null
-        });
-      }
+            if (predictions.length === 0) {
+            return res.json({
+                message: 'No completed predictions found',
+                analytics: null
+            });
+            }
 
-          // Performance by stat type
-      const statAnalytics = {
-        points: { correct: 0, total: 0, accuracy: 0 },
-        rebounds: { correct: 0, total: 0, accuracy: 0 },
-        assists: { correct: 0, total: 0, accuracy: 0 }
-      };
+            // Performance by stat type
+            const statAnalytics = {
+            points: { correct: 0, total: 0, accuracy: 0 },
+            rebounds: { correct: 0, total: 0, accuracy: 0 },
+            assists: { correct: 0, total: 0, accuracy: 0 }
+            };
 
-      predictions.forEach(prediction => {
-        if(prediction.accuracy) {
-            statAnalytics[stat].total++;
-        if(prediction.accuracy([`${stat}Accurate`])) {
-            statAnalytics[stat].correct++;
+            predictions.forEach(prediction => {
+            if (prediction.accuracy) {
+              
+                statAnalytics.points.total++;
+                statAnalytics.rebounds.total++;
+                statAnalytics.assists.total++;
+
+                if (prediction.accuracy.pointsAccuracy > 0) {
+                statAnalytics.points.correct++;
+                }
+                if (prediction.accuracy.reboundsAccuracy > 0) {
+                statAnalytics.rebounds.correct++;
+                }
+                if (prediction.accuracy.assistsAccuracy > 0) {
+                statAnalytics.assists.correct++;
+                }
+            }
+            });
+
+            // Calculate accuracy percentages
+            Object.keys(statAnalytics).forEach(stat => { // object.keys(statAnalytics): gets an array of the keys from the statAnalytics object, which are 'points', 'rebounds', and 'assists'. 
+            const { correct, total } = statAnalytics[stat];
+            statAnalytics[stat].accuracy = total > 0 
+                ? ((correct / total) * 100).toFixed(1)
+                : 0;
+            });
+
+            // Recent performance 
+            const recentPredictions = predictions
+            .slice(-10)
+            .map(p => ({
+                date: p.createdAt,
+                player: p.player.name,
+                accuracy: p.accuracy?.overallAccuracy || 0  
+            }));
+
+            
+            const totalAccuracy = predictions.reduce((sum,p) => sum + (p.accuracy?.overallAccuracy || 0),0)
+            const averageAccuracy = (totalAccuracy / predictions.length).toFixed(2);
+
+            res.json({
+            analytics: {
+                overall: {
+                totalPredictions: predictions.length,
+                averageAccuracy: parseFloat(averageAccuracy)
+                },
+                byStatType: statAnalytics,
+                recentPerformance: recentPredictions
+            }
+            });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
         }
-        }
-      })
+        },
 
-      Object.keys(statAnalytics).forEach(stat => {
-        const { correct, total } = statAnalytics[stat];
-        statAnalytics[stat].accuracy = total > 0 
-          ? ((correct / total) * 100).toFixed(1)
-          : 0;
-      });
-
-      const recentPredictions = predictions
-      .slice(-10)
-      .map(p =>({
-        date: p.createdAt,
-        player: p.player.name,
-        accuracy:  p.accuracy?.overallScore || 0
-      }))
-
-
-      res.json({
-        analytics: {
-          overall: {
-            totalPredictions: predictions.length,
-            averageAccuracy: (predictions.reduce((sum, p) => sum + (p.accuracy?.overallScore || 0), 0) / predictions.length).toFixed(2)
-          },
-          byStatType: statAnalytics,
-          recentPerformance: recentPredictions
-        }
-      });
-
-    }catch(error){
-        res.status(500).json({ error: error.message });
-    }
-
-    },
 
     deleteAccount: async(req,res) => {
         try{
