@@ -24,7 +24,38 @@ const errorHandler = (err,req,res,next) =>{
     }
 
     if(err.name === "Validation error"){
-        
+   const message = Object.values(err.errors).map(error => error.message).join(',')   
+    error = {message, statusCode:400}   
     }
 
+    if(err.name === "JsonWebTokenError"){
+        const message = "Invalid token"
+        error = {message, statusCode:401}
+
+    }
+
+    if(err.name ==="TokenExpiredError"){
+        const message = "Token Expired"
+        error = {message, statusCode:401}
+    }
+
+    if(err.status === 429){
+        const message = "Too many requests"
+        error = {message, statusCode:429
+
+        }
+    }
+    res.status(error.message || 500).json({
+        success:false,
+        error:{
+            message: error.message || 'Server Error',
+            ...(process.env.NODE_ENV === 'development' && {stack: err.stack}) 
+        }
+
+    })
+
+
+
 }
+
+export default errorHandler;
