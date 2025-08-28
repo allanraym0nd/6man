@@ -12,6 +12,7 @@ import playerStatsRoutes from './routes/playerStats.js';
 import userRoutes from './routes/userRoutes.js'
 import leaderboardRoutes from './routes/leaderboard.js';
 import statsRoutes from './routes/stats.js';
+import { connectDb } from './config/connectDB.js';
 
 dotenv.config();
 
@@ -22,7 +23,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-
+await connectDb()
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sixthman')
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => console.error('❌ MongoDB Error:', err));
