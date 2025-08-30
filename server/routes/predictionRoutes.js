@@ -18,6 +18,9 @@ router.get('/ai', predictionController.getAIPredictions);
 // Comparison & results
 
 router.get('/compare/:gameId/:playerId', predictionController.comparePredictions);
-router.put('/:id/result', auth, predictionController.updatePredictionResult);
+router.put('/:id/result', predictionController.updatePredictionResult);
+
+router.get('/game/:gameId', predictionController.getGamePredictions);
+router.delete('/:id', auth, predictionController.deletePrediction);
 
 export default router;
