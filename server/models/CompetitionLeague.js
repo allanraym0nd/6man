@@ -48,4 +48,4 @@ const competitionLeagueSchema = new mongoose.Schema({
     timestamps:true
 })
 
-export default mongoose.model('CompetionLeague', competitionLeagueSchema)
+export default mongoose.model('CompetitionLeague', competitionLeagueSchema)
