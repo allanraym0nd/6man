@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
 
-const gameSchema = new Schema({
+const gameSchema = new mongoose.Schema({
     // NBA API Identifiers
     gameId: {
         type: String,
@@ -94,4 +94,4 @@ gameSchema.index({status: 1}),
 gameSchema.index({season: 1, gameType:1}),
 gameSchema.index({'homeTeam.id': 1, 'awayTeam.id':1})
 
-export default mongoose.model('game', gameSchema)
+export default mongoose.model('Game', gameSchema)
