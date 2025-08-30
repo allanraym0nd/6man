@@ -5,14 +5,15 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js'
 import competitionRoutes from './routes/competitionRoutes.js';
 import predictionRoutes from './routes/predictionRoutes.js';
-// import gameRoutes from './routes/gameRoutes.js';
-// import teamRoutes from './routes/teamRoutes.js';
-import playerRoutes from './routes/players.js';
-import playerStatsRoutes from './routes/playerStats.js';
-import userRoutes from './routes/userRoutes.js'
-import leaderboardRoutes from './routes/leaderboard.js';
-import statsRoutes from './routes/stats.js';
-import { connectDb } from './config/connectDB.js';
+import CompetitionLeague from './models/CompetitionLeague.js';
+import gameRoutes from './routes/gameRoutes.js';
+import teamRoutes from './routes/teamRoutes.js';
+// import playerRoutes from './routes/players.js';
+// import playerStatsRoutes from './routes/playerStats.js';
+// import userRoutes from './routes/userRoutes.js'
+// import leaderboardRoutes from './routes/leaderboard.js';
+// import statsRoutes from './routes/stats.js';
+// import { connectDb } from './config/connectDB.js';
 
 dotenv.config();
 
@@ -23,7 +24,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-await connectDb()
+// await connectDb()
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sixthman')
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => console.error('❌ MongoDB Error:', err));
@@ -32,13 +33,13 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sixthman'
   app.use('/api/auth', authRoutes)
   app.use('/api/competitions', competitionRoutes)
   app.use('/api/predictions',predictionRoutes)
-  // app.use('api/games',gameRoutes)
-  // app.use('api/teams',teamRoutes)
-  app.use('/api/players', playerRoutes);
-  app.use('/api/playerstats', playerStatsRoutes);   
-  app.use('/api/users', userRoutes)
-  app.use('/api/leaderboard', leaderboardRoutes);
-  app.use('/api/stats', statsRoutes);
+  app.use('/api/games',gameRoutes)
+  app.use('/api/teams',teamRoutes)
+  // app.use('/api/players', playerRoutes);
+  // app.use('/api/playerstats', playerStatsRoutes);   
+  // app.use('/api/users', userRoutes)
+  // app.use('/api/leaderboard', leaderboardRoutes);
+  // app.use('/api/stats', statsRoutes);
 
 
 app.get('/api/test', (req, res) => {
