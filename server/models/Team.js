@@ -1,6 +1,6 @@
 import mongoose from 'mongoose' 
 
-const teamSchema =new Schema({
+const teamSchema =new mongoose.Schema({
     // NBA API Identifiers
     teamId: {
     type: String,
@@ -99,7 +99,7 @@ const teamSchema =new Schema({
 }); 
 
 teamSchema.index({conference:1, division:1})
-teamSchema.index({abbreviation1})
+teamSchema.index({abbreviation:1})
 teamSchema.index({'currentSeason.season':1})
 
-export default mongoose.model('Team', true)
+export default mongoose.model('Team', teamSchema)
