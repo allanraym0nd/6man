@@ -2,6 +2,7 @@
 import Prediction from '../models/Prediction.js';
 import User from '../models/User.js';
 import CompetitionLeague from '../models/CompetitionLeague.js';
+import LeagueMembership from '../models/LeagueMembership.js';
 
 const predictionController = {
   // POST /api/predictions/user
