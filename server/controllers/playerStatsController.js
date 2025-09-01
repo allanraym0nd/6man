@@ -1,5 +1,5 @@
 import PlayerStats from "../models/PlayerStats.js";
-import Player from "../models/player.js";
+import Player from "../models/Player.js";
 
 const playerStatsController = {
     // GET /api/playerstats/player/:playerId
@@ -53,7 +53,7 @@ const playerStatsController = {
     },
 
     //GET /api/playerstats/player/:playerId/recent
-    getRecentForm: async(req,res) => {
+  getRecentForm: async(req,res) => {
         try{
             const {playerId} = req.params
             const {games = 5} = req.query
@@ -65,9 +65,9 @@ const playerStatsController = {
                 recentGames: parseInt(games),
                 stats:recentStats,
                 averages: recentStats.length > 0 ? {
-                    points: (recentStats.reduce((sum,stat) => sum, stat.stats.points, 0)/recentStats.length).toFixed(1),
-                     assists: (recentStats.reduce((sum,stat) => sum, stat.stats.assists, 0)/recentStats.length).toFixed(1),
-                      rebounds: (recentStats.reduce((sum,stat) => sum, stat.stats.rebounds, 0)/recentStats.length).toFixed(1)
+                    points: (recentStats.reduce((sum,stat) => sum + stat.stats.points, 0)/recentStats.length).toFixed(1),
+                    assists: (recentStats.reduce((sum,stat) => sum + stat.stats.assists, 0)/recentStats.length).toFixed(1),
+                    rebounds: (recentStats.reduce((sum,stat) => sum + stat.stats.rebounds, 0)/recentStats.length).toFixed(1)
                 } : null
             });
         }catch(error){
@@ -76,7 +76,7 @@ const playerStatsController = {
     },
 
      // GET /api/playerstats/game/:gameId - player stats for a specific game
-     getGamesStats: async(req,res) => {
+     getGameStats: async(req,res) => {
         try{
             const {gameId} = req.params
             const {team} = req.query
@@ -142,82 +142,80 @@ const playerStatsController = {
             const {date,season,limit=10} = req.query
 
             const validStats = ['points', 'rebounds', 'assists', 'steals', 'blocks'];
-                if (!validStats.includes(stat)) {
-                    return res.status(400).json({ error: 'Invalid stat parameter' });
-                }
+            if (!validStats.includes(stat)) {
+                return res.status(400).json({ error: 'Invalid stat parameter' });
+            }
 
-                const filter = {}
+            const filter = {}
 
-                if(date) {
-                    const gameDate = new Date(date)
-                    const nextDate = new Date(gameDate)
-                    nextDate.setDate = (nextDate.getDate() + 1)
-                    filter.gameDate = {$gte: gameDate, $lt:nextDate}
-                }
+            if(date) {
+                const gameDate = new Date(date)
+                const nextDate = new Date(gameDate)
+                nextDate.setDate(nextDate.getDate() + 1)
+                filter.gameDate = {$gte: gameDate, $lt:nextDate}
+            }
 
-                 if (season) filter.season = season;
+            if (season) filter.season = season;
 
-                 const leaders = await PlayerStats.find(filter)
-                 .sort({ [`stats.${stat}`]: -1 })
-                 .limit(parseInt(limit))
-                 .select('player stats gameDate opponent');
+            const leaders = await PlayerStats.find(filter)
+            .sort({ [`stats.${stat}`]: -1 })
+            .limit(parseInt(limit))
+            .select('player stats gameDate opponent');
 
-                 res.json({
-                    stat,
-                    date: date || 'all',
-                    leaders
-                 })
+            res.json({
+               stat,
+               date: date || 'all',
+               leaders
+            })
 
         }catch(error){
              res.status(500).json({ error: error.message });
         }
-      },
-
+    },
       // POST /api/playerstats 
-      createOrUpdatePlayerStats: async(req,res) => {
+          createOrUpdatePlayerStats: async(req,res) => {
         try{
-            const statsData =req.body
+            const statsData = req.body
 
             if (statsData.stats) {
                 const { points, rebounds, assists } = statsData.stats;
+
+                let doubleDoubleCount = 0
+                if (points >= 10) doubleDoubleCount++;
+                if (rebounds >= 10) doubleDoubleCount++;
+                if (assists >= 10) doubleDoubleCount++;
+                if (statsData.stats.steals >= 10) doubleDoubleCount++;
+                if (statsData.stats.blocks >= 10) doubleDoubleCount++;
+
+                statsData.performance = {
+                    ...statsData.performance,
+                    isDoubleDouble: doubleDoubleCount >= 2,
+                    isTripleDouble: doubleDoubleCount >= 3,
+                    fantasyPoints: points + (rebounds * 1.2) + (assists * 1.5) + (statsData.stats.steals * 3) + (statsData.stats.blocks * 3)
+                }
             }
 
-            letDoubleDoubleCount = 0
-            if (points >= 10) doubleDoubleCount++;
-            if (rebounds >= 10) doubleDoubleCount++;
-            if (assists >= 10) doubleDoubleCount++;
-            if (statsData.stats.steals >= 10) doubleDoubleCount++;
-            if (statsData.stats.blocks >= 10) doubleDoubleCount++;
-
-        statsData.Performance = {
-            ...statsData.Perfomance,
-            isDoubleDouble: doubleDoubleCount >= 2,
-            isTripleDouble: doubleDoubleCount >= 3,
-            fantasyPoints: points + (rebounds * 1.2) + (assists * 1.5) + (statsData.stats.steals * 3) + (statsData.stats.blocks * 3)
-
-        }
-
-        const playerStats = await PlayerStats.findAndUpdate(
-            {playerId: statsData.playerId,
-                gameId: statsData.gameId 
-             },
-             statsData,
-             { 
-                new: true, 
-                upsert: true,
-                runValidators: true 
+            const playerStats = await PlayerStats.findOneAndUpdate(
+                {
+                    playerId: statsData.playerId,
+                    gameId: statsData.gameId 
+                },
+                statsData,
+                { 
+                    new: true, 
+                    upsert: true,
+                    runValidators: true 
                 }
-        )
+            )
 
-        res.json({
-        message: playerStats.isNew ? 'Player stats created' : 'Player stats updated',
-        playerStats
-      });
+            res.json({
+                message: playerStats.isNew ? 'Player stats created' : 'Player stats updated',
+                playerStats
+            });
         }catch(error){
              res.status(500).json({ error: error.message });
-
         }
-      },
+    },
 
       // GET /api/playerstats/prediction-context/:playerId
 
