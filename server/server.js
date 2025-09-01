@@ -8,9 +8,9 @@ import predictionRoutes from './routes/predictionRoutes.js';
 import CompetitionLeague from './models/CompetitionLeague.js';
 import gameRoutes from './routes/gameRoutes.js';
 import teamRoutes from './routes/teamRoutes.js';
-// import playerRoutes from './routes/players.js';
-// import playerStatsRoutes from './routes/playerStats.js';
-// import userRoutes from './routes/userRoutes.js'
+import playerRoutes from './routes/players.js';
+import playerStatsRoutes from './routes/playerStats.js';
+import userRoutes from './routes/userRoutes.js'
 // import leaderboardRoutes from './routes/leaderboard.js';
 // import statsRoutes from './routes/stats.js';
 // import { connectDb } from './config/connectDB.js';
@@ -35,9 +35,9 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sixthman'
   app.use('/api/predictions',predictionRoutes)
   app.use('/api/games',gameRoutes)
   app.use('/api/teams',teamRoutes)
-  // app.use('/api/players', playerRoutes);
-  // app.use('/api/playerstats', playerStatsRoutes);   
-  // app.use('/api/users', userRoutes)
+  app.use('/api/players', playerRoutes);
+  app.use('/api/playerstats', playerStatsRoutes);   
+  app.use('/api/users', userRoutes)
   // app.use('/api/leaderboard', leaderboardRoutes);
   // app.use('/api/stats', statsRoutes);
 
