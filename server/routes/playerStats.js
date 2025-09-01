@@ -16,5 +16,5 @@ router.get('/prediction-context/:playerId', playerStatsController.getPredictionC
 // Admin/sync routes (protected)
 router.post('/', auth, playerStatsController.createOrUpdatePlayerStats);
 
-export default routes;
+export default router;
 
