@@ -94,4 +94,4 @@ gameSchema.index({status: 1}),
 gameSchema.index({season: 1, gameType:1}),
 gameSchema.index({'homeTeam.id': 1, 'awayTeam.id':1})
 
-export default mongoose.model('Game', gameSchema)
+export default mongoose.models.Game || mongoose.model('Game', gameSchema)
