@@ -1,4 +1,4 @@
-import Player from "../models/player";
+import Player from "../models/Player.js";
 
 const playerController =  {
 
@@ -23,13 +23,13 @@ const playerController =  {
                 })
             }
 
-            const player = await query
-            .sort({'seasonStats.average.points':-1})
+            const players = await query
+            .sort({'seasonStats.averages.points':-1})
             .limit(parseInt(limit))
 
             res.json({
-                player,
-                total:player.length,
+                players,
+                total:players.length,
                 filter:{team, position, status, search}
             })
 
@@ -41,7 +41,7 @@ const playerController =  {
     // GET /api/players/:playerId
     getPlayerById: async(req,res) => {
         try{
-            const player = await Player.findById({'playerId': req.params.playerId})
+            const player = await Player.findOne({'playerId': req.params.playerId})
 
             if(!player) {
                 return res.status(404).json({ error: 'Player not found' });
@@ -62,10 +62,10 @@ const playerController =  {
             const {position, status} = req.query
 
             const filter = {
-                'team.id':teamId,
-                status:status
+                'team.id':teamId
             }
 
+            if(status) filter.status = status
             if(position) filter.position = position
 
             const roster = await Player.find(filter)
@@ -84,7 +84,6 @@ const playerController =  {
     },
 
      // GET /api/players/prediction-eligible
-
      getPredictionEligiblePlayers: async(req,res) => {
         try{
             const {team,position,minGames = 5 } = req.query
@@ -92,15 +91,15 @@ const playerController =  {
             const filter = {
                 isPredictionEligible:true,
                 status:'active',
-                'seasonStats.gamesPlayed': ({$gte: parseInt(minGames)}) 
+                'seasonStats.gamesPlayed': {$gte: parseInt(minGames)} 
             }
 
-            if(team) filter('team.abbreviation') = team
+            if(team) filter['team.abbreviation'] = team
             if(position) filter.position = position
 
             const players = await Player.find(filter)
             .select('playerId fullName team position seasonStats.averages recentForm')
-            .sort({'seasonStats.average.Points': -1})
+            .sort({'seasonStats.averages.points': -1})
 
             res.json({
                 players,
@@ -115,7 +114,6 @@ const playerController =  {
      },
 
      // GET /api/players/:playerId/stats
-
      getPlayerStats: async(req,res) => {
         try{
             const player = await Player.findOne({playerId: req.params.playerId}) 
@@ -187,8 +185,8 @@ const playerController =  {
         try{
             const playerData = req.body
 
-            const player = findOneAndUpdate(
-                {playerId: req.params.playerId},
+            const player = await Player.findOneAndUpdate(
+                {playerId: playerData.playerId},
                 playerData,
                 {
                     new:true,
@@ -213,7 +211,7 @@ const playerController =  {
             const {playerId} = req.params
             const {seasonStats, recentForm} = req.body
 
-            const player = await Player.findByIdAndUpdate(
+            const player = await Player.findOneAndUpdate(
                 {playerId},
                 {seasonStats,recentForm},
                 {new:true}
@@ -233,13 +231,12 @@ const playerController =  {
       },
 
        // PUT /api/players/:playerId/status 
-
        updatePlayerStatus: async(req,res) => {
         try{
             const {playerId} = req.params;
             const {status,injury} = req.body
 
-            const player = await Player.findById(
+            const player = await Player.findOneAndUpdate(
                 {playerId},
                 {status,injury},
                 {new:true}
@@ -250,14 +247,13 @@ const playerController =  {
                 }
 
                 res.json({
-                    message:' Status Updated',
+                    message:'Status Updated',
                     player
                 })
         }catch(error){
              res.status(500).json({ error: error.message });
         }
        }
-
 
 }
 
