@@ -5,12 +5,12 @@ import auth from '../middleware/auth.js'
 const router = express.Router()
 
 // all require authentication
-router.get('/profile', auth, userController.getProfile);
+router.get('/profile', auth, userController.getUserProfile);
 router.put('/profile', auth, userController.updateProfile);
 router.get('/stats', auth, userController.getUserStats);
 router.get('/predictions', auth, userController.getPredictionHistory);
 router.get('/performance', auth, userController.getPerformanceAnalytics);
-router.get('/leagues', auth, userController.getUserLeagues);
+// router.get('/leagues', auth, userController.getUserLeagues);
 router.delete('/account', auth, userController.deleteAccount);
 
 //Public route (for leaderboards, other users to see)
