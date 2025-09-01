@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
 
-const playerStatsSchema = new mongoose.schema({
+const playerStatsSchema = new mongoose.Schema({
 playerId:{
      type:String,
      required:true,
@@ -152,4 +152,4 @@ playerStatsSchema.statics.getPlayerAverages = function(playerId, season ,gameTyp
         .select('stats gameDate opponent');
      }
 
-export default mongoose.schema('PlayerStats', playerStatsSchema)
+export default mongoose.models.PlayerStats || mongoose.model('PlayerStats', playerStatsSchema);
