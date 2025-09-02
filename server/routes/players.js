@@ -1,6 +1,7 @@
 import express from 'express';
 import playerController from '../controllers/playerController.js';
 import auth from '../middleware/auth.js';
+import { statsRateLimit } from '../middleware/rateLimiting.js';
 
 const router = express.Router()
 
@@ -8,9 +9,9 @@ const router = express.Router()
 router.get('/', playerController.getAllPlayers);
 router.get('/:playerId', playerController.getPlayerById);
 router.get('/team/:teamId', playerController.getTeamRoster);
-router.get('/prediction-eligible', playerController.getPredictionEligiblePlayers);
+router.get('/prediction-eligible', statsRateLimit, playerController.getPredictionEligiblePlayers);
 router.get('/:playerId/stats', playerController.getPlayerStats);
-router.get('/leaders/:stat', playerController.getStatLeaders);
+router.get('/leaders/:stat', statsRateLimit, playerController.getStatLeaders);
 
 // Admin/sync routes (protected)
 router.post('/', auth, playerController.createOrUpdatePlayer);
