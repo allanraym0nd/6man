@@ -50,14 +50,26 @@ const passwordResetRateLimit = rateLimit({
 
 const createRedisRateLimit = (redisClient) => { // the redisClient object is the connection to the database
     return rateLimit({
-        store: new RedisStore({
-            sendCommand: (...args) => redisClient.call(...args) // (...args) gathers all the arguments passed to the sendCommand function and bundles them into an array named args
-        }),
+        store: {
+            incr: async(key) => {
+                const result= await redisClient.incrementRateLimit(`rate_limit:${key}`,900)
+                return result.count ; 
+
+            },
+            decrement : () => {},
+            resetKey: async(key) => {
+                await redisClient.delete(`rate_limit:${key}`)
+            }    
+        },
         windowMs:15*60*1000,
         max:100
     });
 
 }
+
+const adaptiveRateLimit = redisClient.isConnected 
+    ? createRedisRateLimit 
+    : generalRateLimit
 
 export {
     generalRateLimit,
@@ -65,8 +77,13 @@ export {
     predictionRateLimit,
     statsRateLimit,
     passwordResetRateLimit,
-    createRedisRateLimit
+    createRedisRateLimit,
+    adaptiveRateLimit,
+    createRedisRateLimit as redisRateLimit
 
 }
+
+
+
 
 
