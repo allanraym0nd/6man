@@ -33,7 +33,7 @@ class RedisClient {
                 this.isConnected = true
 
             })
-            this.client.on('error', () => {
+            this.client.on('error', (err) => {
                 console.log('Redis error', err)
                 this.isConnected = false
 
@@ -97,7 +97,7 @@ class RedisClient {
             const results = await multi.exec()
 
              const count = results[0][1];
-             const ttl = this.client.ttl(key)
+             const ttl = await this.client.ttl(key)
 
                return { count, ttl };
 
