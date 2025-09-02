@@ -15,7 +15,7 @@ const validation = {
             errors.push("Password must be at least six characters long")
         }
 
-        if(username || /^[a-zA-Z0-9_]+$/.test(username)){ // dollar sign asserts the end of the string
+        if(username || !/^[a-zA-Z0-9_]+$/.test(username)){ // dollar sign asserts the end of the string
             errors.push("Username can only contain letters, numbers, and underscores")
         }
 
@@ -23,6 +23,24 @@ const validation = {
             return res.status(400).json({error: errors.join(',')}) // json object with the name error
         }
         next();
+
+    },
+
+    validateLogin: (req,res,next) => {
+        const {email,password} = req.body
+        const errors = []
+
+        if(!email || !email.trim()){
+            errors.push("Email is required")
+        }
+
+        if(!password || !password.trim()){
+            errors.push("Password is required")
+        }
+
+        if(errors.length > 0) {
+            res.status(400).json({error : errors.join(',')})
+        }
 
     },
 
@@ -81,7 +99,7 @@ const validation = {
         } else {
             const requiredStats = ['points', 'rebounds', 'assists']
             requiredStats.forEach(stat => {
-                if(predictions[stat] === "undefined" || prediction[stat] === null){
+                if(predictions[stat] === "undefined" || predictions[stat] === null){
                     errors.push(`${stat} is required`)
                 }else if (typeof predictions[stat] !== "number" || predictions[stat] < 0){
                     errors.push(`${stat} must be a non-negative number`)
@@ -173,7 +191,7 @@ const validation = {
      },
      // Validate MongoDB ObjectId
      validateObjectId: (paramName) => {
-        return (res,req,next) =>{
+        return (req,res,next) =>{
             const id =req.params[paramName]
             const objectIdRegex = /^[0-9a-fA-F]{24}$/;
 
