@@ -85,5 +85,12 @@ app.listen(PORT, () => {
   console.log(`🚀 SixthMan server running on port ${PORT}`);
   console.log(`📡 Test endpoint: http://localhost:${PORT}/api/test`);
 
+  process('SIGTERM', async() => {
+    console.log('Shutting down gracefully...');
+    await redisClient.disconnect();
+    await mongooseConnection.connection.close()
+    process.exit()
+  });
+
 app.use(errorHandler);
 });
