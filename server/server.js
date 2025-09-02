@@ -13,6 +13,8 @@ import playerStatsRoutes from './routes/playerStats.js';
 import userRoutes from './routes/userRoutes.js'
 import leaderboardRoutes from './routes/leaderboardRoutes.js';
 import statsRoutes from './routes/statRoutes.js';
+import errorHandler from './middleware/errorHandler.js';
+import { authRateLimit, generalRateLimit, predictionRateLimit,statsRateLimit } from './middleware/rateLimiting.js';
 // import { connectDb } from './config/connectDB.js';
 
 dotenv.config();
@@ -23,6 +25,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(generalRateLimit)
 
 // await connectDb()
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sixthman')
@@ -30,16 +33,17 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sixthman'
   .catch(err => console.error('❌ MongoDB Error:', err));
 
   //routes
-  app.use('/api/auth', authRoutes)
-  app.use('/api/competitions', competitionRoutes)
-  app.use('/api/predictions',predictionRoutes)
+  app.use('/api/auth', authRateLimit, authRoutes)
+  app.use('/api/competitions',competitionRoutes)
+  app.use('/api/predictions',predictionRateLimit, predictionRoutes)
   app.use('/api/games',gameRoutes)
   app.use('/api/teams',teamRoutes)
   app.use('/api/players', playerRoutes);
   app.use('/api/playerstats', playerStatsRoutes);   
-  app.use('/api/users', userRoutes)
-  app.use('/api/leaderboards', leaderboardRoutes);
+  app.use('/api/users', statsRateLimit,userRoutes)
+  app.use('/api/leaderboards', statsRateLimit,leaderboardRoutes);
   app.use('/api/stats', statsRoutes);
+  app.use(errorHandler)
 
 
 app.get('/api/test', (req, res) => {
