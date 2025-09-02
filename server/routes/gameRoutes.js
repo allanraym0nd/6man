@@ -18,8 +18,4 @@ router.get('/predictions-active', gameController.getPredictionActiveGames);
 router.post('/', auth, gameController.createOrUpdateGame);
 router.put('/:gameId/result', auth, gameController.updateGameResult);
 
-
-
-
-
 export default router;
