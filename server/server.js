@@ -39,7 +39,7 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sixthman'
   app.use('/api/games',gameRoutes)
   app.use('/api/teams',teamRoutes)
   app.use('/api/players', playerRoutes);
-  app.use('/api/playerstats', playerStatsRoutes);   
+  app.use('/api/playerstats', statsRateLimit, playerStatsRoutes);   
   app.use('/api/users', statsRateLimit,userRoutes)
   app.use('/api/leaderboards', statsRateLimit,leaderboardRoutes);
   app.use('/api/stats', statsRoutes);
