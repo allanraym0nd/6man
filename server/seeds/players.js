@@ -18,10 +18,61 @@ const seedPlayers = async() => {
          console.log(`Fetching page ${currentPage}...`);
          const result = await SportsDataService.getPlayers(currentPage,100)
 
+        const transformedPlayers = result.players.map(player => ({
+        playerId: player.id.toString(),
+        firstName: player.firstName,
+        lastName: player.lastName,
+        fullName: `${player.firstName} ${player.lastName}`,
+        team: {
+          id: player.team.id.toString(),
+          name: player.team.name,
+          abbreviation: player.team.abbreviation
+        },
+        jersey: null, // API doesn't provide
+        position: player.position || 'F',
+        height: {
+          feet: null,
+          inches: null,
+          total: player.height || null
+        },
+        weight: player.weight || null,
+        age: null,
+        experience: null,
+        status: 'active',
+        seasonStats: {
+          season: '2024-25',
+          gamesPlayed: 0,
+          gamesStarted: 0,
+          averages: {
+            points: 0,
+            rebounds: 0,
+            assists: 0,
+            steals: 0,
+            blocks: 0,
+            turnovers: 0,
+            fieldGoalPercentage: 0,
+            threePointPercentage: 0,
+            freeThrowPercentage: 0,
+            minutesPerGame: 0
+          }
+        },
+        recentForm: {
+          games: 0,
+          averages: {
+            points: 0,
+            rebounds: 0,
+            assists: 0
+          }
+        },
+        isPredictionEligible: true
+      }));
+
          allPlayers = allPlayers.concat(result.players)
 
          hasMorePages = result.meta.current_page < result.meta.total_pages
          currentPage++;
+
+
          await new Promise(resolve => setTimeout(resolve,1000))
      }
 
