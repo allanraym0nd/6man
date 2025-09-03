@@ -1,4 +1,5 @@
 import rateLimit from 'express-rate-limit'
+import redisClient from '../config/redis.js';
 
 const generalRateLimit = rateLimit({
     windowMs: 15*60*1000,
@@ -27,7 +28,10 @@ const predictionRateLimit = rateLimit({
         error: "Too many predictions created, please slow down"
     },
     keyGenerator: (req) => {
-        return req.user?.id || req.ip //Rate limit by user ID if authenticated
+        if(req.user?.id){
+            return req.user.id
+        } //Rate limit by user ID if authenticated
+        return req.ip
     }
 });
 
