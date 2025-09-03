@@ -99,7 +99,7 @@ const teamSchema =new mongoose.Schema({
 }); 
 
 teamSchema.index({conference:1, division:1})
-teamSchema.index({abbreviation:1})
+// teamSchema.index({abbreviation:1})
 teamSchema.index({'currentSeason.season':1})
 
 export default mongoose.model('Team', teamSchema)
