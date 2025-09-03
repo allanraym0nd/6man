@@ -16,7 +16,7 @@ import statsRoutes from './routes/statRoutes.js';
 import errorHandler from './middleware/errorHandler.js';
 import { adaptiveRateLimit, authRateLimit, generalRateLimit, predictionRateLimit,statsRateLimit } from './middleware/rateLimiting.js';
 import redisClient from './config/redis.js';
-// import { connectDb } from './config/connectDB.js';
+import { connectDb, disconnectDB } from './config/connectDB.js';
 
 dotenv.config();
 
@@ -27,19 +27,24 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-try {
-  await redisClient.connect()
-   console.log('✅ Redis Connected');
-}catch(error){
-  console.log("Redis Connection failed, using memory based rate limiting")
+// try {
+//   await redisClient.connect()
+//    console.log('✅ Redis Connected');
+// }catch(error){
+//   console.log("Redis Connection failed, using memory based rate limiting")
 
+// }
+
+try {
+  await connectDb()
+}catch(error) {
+  console.error('Database Connection Failed')
+  process.exit(1)
 }
 
-
-// await connectDb()
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sixthman')
-  .then(() => console.log('✅ MongoDB Connected'))
-  .catch(err => console.error('❌ MongoDB Error:', err));
+// mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sixthman')
+//   .then(() => console.log('✅ MongoDB Connected'))
+//   .catch(err => console.error('❌ MongoDB Error:', err));
 
 app.use(adaptiveRateLimit);
 
@@ -85,10 +90,10 @@ app.listen(PORT, () => {
   console.log(`🚀 SixthMan server running on port ${PORT}`);
   console.log(`📡 Test endpoint: http://localhost:${PORT}/api/test`);
 
-  process('SIGTERM', async() => {
+  process.on('SIGTERM', async() => {
     console.log('Shutting down gracefully...');
     await redisClient.disconnect();
-    await mongooseConnection.connection.close()
+    await disconnectDB()
     process.exit()
   });
 
