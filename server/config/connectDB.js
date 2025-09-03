@@ -8,12 +8,12 @@ const connectDb  = async() => {
     const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sixthman', {
         maxPoolSize: 10, // Maximum number of connections in the pool
         minPoolSize:2, // Minimum number of connections in the pool
-        serverSelectionTimeouts:5000, // How long to try selecting a server
+        serverSelectionTimeoutMS:5000, // How long to try selecting a server
         socketTimeoutMS:45000, // How long a socket stays open with no activity
         connectTimeoutMS:10000, // How long to wait for initial connection
-        bufferMaxEntries:0, // Disable mongoose buffering
-        bufferCommands: false, // Disable mongoose buffering completely
-        maxIdleTime:30000, // Close connections after 30 seconds of inactivity
+        // bufferMaxEntries:0, // Disable mongoose buffering
+        // bufferCommands: false, // Disable mongoose buffering completely
+        // maxIdleTime:30000, // Close connections after 30 seconds of inactivity
         heartbeatFrequencyMS:10000, // Check server health every 10 seconds
     })
 
@@ -29,7 +29,7 @@ const connectDb  = async() => {
         console.log('MongoDB disconnected. Attempting to reconnect...');
     })
 
-    mongoose.connnection.on('reconnected', () => {
+    mongoose.connection.on('reconnected', () => {
         console.log('MongoDB reconnected successfully');
     })
 
@@ -50,7 +50,7 @@ const connectDb  = async() => {
     }
 
     //listen for termination signals
-    process.on('SIGNT', () => graceFullShutdown('SIGNT'))
+    process.on('SIGINT', () => graceFullShutdown('SIGINT'))
     process.on('SIGTERM', () => graceFullShutdown('SIGTERM')) // 'SIGTERM used by process managers and deployment platforms (like Docker, Kubernetes) to gracefully shut down an application.
     process.on('SIGUSR2', () => graceFullShutdown('SIGUSR2')) //  used by development tools like Nodemon to signal that the application is about to restart // avoid resource contention
 
@@ -62,7 +62,7 @@ const connectDb  = async() => {
         
     if(error.name === 'MongoServerSelectionError'){
         console.error('Could not connect to MongoDB server. Check if MongoDB is running.');
-    } else if(error.name = 'MongoParseError'){
+    } else if(error.name === 'MongoParseError'){
         console.error('Invalid MongoDB connection string.');
     }
 
