@@ -8,6 +8,50 @@ const seedTeams = async() => {
          console.log('Fetching NBA teams from API...');
          const teamsData = await SportsDataService.getTeams()
 
+         const transformedTeams = teamsData.map(team => ({
+            teamId: team.id.toString(),
+        name: team.name,
+        abbreviation: team.abbreviation,
+        nickname: team.name.split(' ').pop(), // "Los Angeles Lakers" -> "Lakers"
+        city: team.city,
+        conference: team.conference,
+        division: team.division,
+        currentSeason: {
+            season: '2024-25',
+            record: {
+            wins: 0,
+            losses: 0,
+            winPercentage: 0
+            },
+            standings: {
+            conferenceRank: null,
+            divisionRank: null,
+            overallRank: null
+            }
+        },
+        stats: {
+            offensive: {
+            pointsPerGame: null,
+            fieldGoalPercentage: null,
+            threePointPercentage: null,
+            reboundsPerGame: null,
+            assistsPerGame: null
+            },
+            defensive: {
+            pointsAllowedPerGame: null,
+            reboundsAllowedPerGame: null,
+            stealsPerGame: null,
+            blocksPerGame: null
+            },
+            overall: {
+            pace: null,
+            efficiency: null
+            }
+        },
+        isActive: true
+
+         }))
+
          console.log('Clearing existing teams...');
          await Team.deleteMany({})
 
