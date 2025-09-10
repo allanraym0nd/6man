@@ -167,25 +167,20 @@ async def train_real_ml_models():
 async def make_prediction(features: dict):
     """Make predictions for a player"""
     try:
-        # Load real models if not already loaded
         if all(model is None for model in trainer.models.values()):
             trainer.load_models('real_nba_models')
         
-        # Make prediction
         predictions = trainer.predict(features)
+        performance = trainer.get_model_performance()
         
         return {
             "predictions": predictions,
-            "model_performance": {
-                "points_mae": "±5.5 points",
-                "rebounds_mae": "±2.1 rebounds", 
-                "assists_mae": "±1.6 assists"
-            },
+            "model_performance": performance,  # Real metrics, not hardcoded
             "features_used": trainer.feature_columns
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 
 @app.get("/players/predict/{player_id}")
 async def predict_for_player(player_id: int, home_game: bool = True, rest_days: int = 1):
