@@ -30,11 +30,15 @@ const playerSchema = new mongoose.Schema({
     // Player details
     jersey: {
         type: Number,
-        required: true // 23
+        required: false, // 23
     },
     position: {
         type: String,
-        enum: ['PG', 'SG', 'SF', 'PF', 'C', 'G', 'F'],
+        enum: [
+        'PG', 'SG', 'SF', 'PF', 'C', // standard positions
+        'G', 'F',                     // generic positions
+        'C-F', 'G-F', 'F-G', 'F-C'  // add all possible combined positions
+    ],
         required: true
     },
     height:{
