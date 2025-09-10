@@ -1,6 +1,6 @@
 import Player from "../models/Player.js";
 import mongoose from "mongoose";
-import SportsDataService from "../services/sportsDataService.js";
+import sportsDataService from "../services/sportsDataService.js";
 import {connectDb} from '../config/connectDB.js';
 
 const seedPlayers = async() => {
@@ -16,13 +16,26 @@ const seedPlayers = async() => {
 
      while (hasMorePages) {
          console.log(`Fetching page ${currentPage}...`);
-         const result = await SportsDataService.getPlayers(currentPage,100)
+         const result = await sportsDataService.getPlayers(currentPage,100)
+          console.log('API response structure:', JSON.stringify(result, null, 2));
+            console.log('Total teams fetched:', result.length);
+
+                if (!result || !result.players || result.players.length === 0) {
+                 console.log("No more players or unexpected API response. Ending loop.");
+                 hasMorePages = false;
+                 break;
+            }
+
+
+         console.log(`First player from API: ${result.players[0].firstName} ${result.players[0].lastName}`);
+         console.log(`Total players fetched on this page: ${result.players.length}`);
+
 
         const transformedPlayers = result.players.map(player => ({
         playerId: player.id.toString(),
-        firstName: player.firstName,
-        lastName: player.lastName,
-        fullName: `${player.firstName} ${player.lastName}`,
+        firstName: player.firstName || 'Unknown',
+        lastName: player.lastName || 'Unknown',
+        fullName: `${player.firstName} ${player.lastName}` || "Unknown",
         team: {
           id: player.team.id.toString(),
           name: player.team.name,
@@ -67,11 +80,14 @@ const seedPlayers = async() => {
         isPredictionEligible: true
       }));
 
-         allPlayers = allPlayers.concat(result.players)
+         allPlayers.push(...transformedPlayers)
 
-         hasMorePages = result.meta.current_page < result.meta.total_pages
-         currentPage++;
-
+         if(result.players.length < 0) {
+          console.log("Fewer players than requested. Assuming last page.");
+          hasMorePages = false
+         } else { 
+             currentPage++;
+         }
 
          await new Promise(resolve => setTimeout(resolve,1000))
      }
