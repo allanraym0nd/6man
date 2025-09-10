@@ -1,76 +1,76 @@
 import Team from "../models/Team.js";
 import mongoose from "mongoose";
-import SportsDataService from "../services/sportsDataService.js";
+import sportsDataService from "../services/sportsDataService.js";
 import {connectDb} from '../config/connectDB.js';
 
 const seedTeams = async() => {
-    try {
-         console.log('Fetching NBA teams from API...');
-         const teamsData = await SportsDataService.getTeams()
-
-         const transformedTeams = teamsData.map(team => ({
-            teamId: team.id.toString(),
-        name: team.name,
-        abbreviation: team.abbreviation,
-        nickname: team.name.split(' ').pop(), // "Los Angeles Lakers" -> "Lakers"
-        city: team.city,
-        conference: team.conference,
-        division: team.division,
+  try {
+    console.log('Fetching NBA teams from API...');
+    const teamsData = await sportsDataService.getTeams();
+    console.log('First team from API:', JSON.stringify(teamsData[0], null, 2));
+    console.log('Total teams fetched:', teamsData.length);
+    
+    console.log('Clearing existing teams...');
+    await Team.deleteMany({});
+    
+    // Debug: Check a few teams for missing fields
+    console.log('\n--- Checking for problematic teams ---');
+    teamsData.forEach((team, index) => {
+      if (!team.city || !team.division || team.city === '' || team.division === '') {
+        console.log(`Team ${index + 1} (${team.name}) - City: "${team.city}", Division: "${team.division}"`);
+      }
+    });
+    
+    const transformedTeams = teamsData.map(team => {
+      // Add validation and fallbacks
+      const transformedTeam = {
+        teamId: team.id.toString(),
+        name: team.name || 'Unknown Team',
+        abbreviation: team.abbreviation || 'UNK',
+        nickname: team.name ? team.name.split(' ').pop() : 'Unknown',
+        city: team.city && team.city.trim() !== '' ? team.city : 'Unknown City', // Handle empty strings
+        conference: team.conference === 'East' ? 'Eastern' : 'Western',
+        division: team.division && team.division.trim() !== '' ? team.division : 'Atlantic', // Handle empty strings
         currentSeason: {
-            season: '2024-25',
-            record: {
+          season: '2024-25',
+          record: {
             wins: 0,
             losses: 0,
             winPercentage: 0
-            },
-            standings: {
+          },
+          standings: {
             conferenceRank: null,
             divisionRank: null,
             overallRank: null
-            }
-        },
-        stats: {
-            offensive: {
-            pointsPerGame: null,
-            fieldGoalPercentage: null,
-            threePointPercentage: null,
-            reboundsPerGame: null,
-            assistsPerGame: null
-            },
-            defensive: {
-            pointsAllowedPerGame: null,
-            reboundsAllowedPerGame: null,
-            stealsPerGame: null,
-            blocksPerGame: null
-            },
-            overall: {
-            pace: null,
-            efficiency: null
-            }
+          }
         },
         isActive: true
-
-         }))
-
-         console.log('Clearing existing teams...');
-         await Team.deleteMany({})
-
-        console.log('Inserting new teams...');
-        const teams = await Team.insertMany()
-
-        console.log(`Successfully seeded ${teams.length} teams`)
-        return teams;
-    }catch(error){
-        console.error('Error seeding teams:', error);
-        throw error;
-    }
+      };
+      
+      // Debug log for first transformed team
+      if (team.id === 1) {
+        console.log('\n--- First transformed team ---');
+        console.log(JSON.stringify(transformedTeam, null, 2));
+      }
+      
+      return transformedTeam;
+    });
+    
+    console.log('Inserting new teams...');
+    const teams = await Team.insertMany(transformedTeams);
+    console.log(`Successfully seeded ${teams.length} teams`);
+    return teams;
+  } catch(error) {
+    console.error('Error seeding teams:', error);
+    throw error;
+  }
 }
 
-export default seedTeams
+export default seedTeams;
 
-   if(import.meta.url === `file://${process.argv[1]}`) {  //checks if the current file is being executed as the main script(team.js)
-    await connectDb()
-    await seedTeams()
-    await mongoose.connection.close()
-    process.exit(0) // if it exits with 0, the script ran sucessfully
-   }
+if(import.meta.url === `file://${process.argv[1]}`) {
+  await connectDb();
+  await seedTeams();
+  await mongoose.connection.close();
+  process.exit(0);
+}
