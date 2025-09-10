@@ -18,6 +18,8 @@ import { adaptiveRateLimit, authRateLimit, generalRateLimit, predictionRateLimit
 import redisClient from './config/redis.js';
 import { connectDb, disconnectDB } from './config/connectDB.js';
 import aiRoutes from './routes/aiRoutes.js'
+import seedTeams from './seeds/team.js';
+import seedPlayers from './seeds/players.js';
 
 dotenv.config();
 
