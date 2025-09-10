@@ -17,6 +17,7 @@ import errorHandler from './middleware/errorHandler.js';
 import { adaptiveRateLimit, authRateLimit, generalRateLimit, predictionRateLimit,statsRateLimit } from './middleware/rateLimiting.js';
 import redisClient from './config/redis.js';
 import { connectDb, disconnectDB } from './config/connectDB.js';
+import aiRoutes from './routes/aiRoutes.js'
 
 dotenv.config();
 
@@ -59,6 +60,7 @@ app.use(adaptiveRateLimit);
   app.use('/api/users', statsRateLimit,userRoutes)
   app.use('/api/leaderboards', statsRateLimit,leaderboardRoutes);
   app.use('/api/stats', statsRoutes);
+  app.use('/api/ai', aiRoutes);
 
 
 
