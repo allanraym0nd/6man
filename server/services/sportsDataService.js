@@ -222,4 +222,4 @@ class SportsDataService {
 
 }
 
-export default SportsDataService
+export default new SportsDataService()
