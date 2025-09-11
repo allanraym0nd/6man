@@ -4,54 +4,54 @@ import sportsDataService from "../services/sportsDataService.js";
 import {connectDb} from '../config/connectDB.js';
 
 const seedPlayers = async() => {
-    try {
-    console.log('Fetching NBA players from API...');
+  try {
+    console.log('Fetching NBA players from NBA.com official API...');
+    console.log('Clearing existing players...');
+    await Player.deleteMany({});
 
-     console.log('Clearing existing players...');
-     await Player.deleteMany({})
+    const playersData = await sportsDataService.getPlayers();
+    console.log('Raw players data length:', playersData.length);
+    console.log('First player raw data:', playersData[0]);
 
-     let allPlayers = []
-     let currentPage = 1
-     let hasMorePages = true
-
-     while (hasMorePages) {
-         console.log(`Fetching page ${currentPage}...`);
-         const result = await sportsDataService.getPlayers(currentPage,100)
-          console.log('API response structure:', JSON.stringify(result, null, 2));
-            console.log('Total teams fetched:', result.length);
-
-                if (!result || !result.players || result.players.length === 0) {
-                 console.log("No more players or unexpected API response. Ending loop.");
-                 hasMorePages = false;
-                 break;
-            }
-
-
-         console.log(`First player from API: ${result.players[0].firstName} ${result.players[0].lastName}`);
-         console.log(`Total players fetched on this page: ${result.players.length}`);
-
-
-        const transformedPlayers = result.players.map(player => ({
-        playerId: player.id.toString(),
-        firstName: player.firstName || 'Unknown',
-        lastName: player.lastName || 'Unknown',
-        fullName: `${player.firstName} ${player.lastName}` || "Unknown",
+    const transformedPlayers = playersData.map(playerRow => {
+      // NBA.com returns arrays: [PERSON_ID, DISPLAY_LAST_COMMA_FIRST, DISPLAY_FIRST_LAST, ROSTERSTATUS, FROM_YEAR, TO_YEAR, PLAYERCODE, TEAM_ID, TEAM_CITY, TEAM_NAME, TEAM_ABBREVIATION, TEAM_CODE, GAMES_PLAYED_FLAG]
+      const personId = playerRow[0];
+      const lastCommaFirst = playerRow[1] || '';
+      const firstLast = playerRow[2] || '';
+      const rosterStatus = playerRow[3];
+      const fromYear = playerRow[4];
+      const toYear = playerRow[5];
+      const teamId = playerRow[7];
+      const teamCity = playerRow[8] || '';
+      const teamName = playerRow[9] || '';
+      const teamAbbreviation = playerRow[10] || '';
+      
+      // Parse name from firstLast format
+      const nameParts = firstLast.split(' ');
+      const firstName = nameParts[0] || 'Unknown';
+      const lastName = nameParts.slice(1).join(' ') || 'Unknown';
+      
+      return {
+        playerId: personId.toString(),
+        firstName: firstName,
+        lastName: lastName,
+        fullName: firstLast,
         team: {
-          id: player.team.id.toString(),
-          name: player.team.name,
-          abbreviation: player.team.abbreviation
+          id: teamId ? teamId.toString() : 'unknown',
+          name: teamName,
+          abbreviation: teamAbbreviation
         },
-        jersey: null, // API doesn't provide
-        position: player.position || 'F',
+        jersey: null,
+        position: 'F', // NBA.com doesn't provide position in this endpoint
         height: {
           feet: null,
           inches: null,
-          total: player.height || null
+          total: null
         },
-        weight: player.weight || null,
+        weight: null,
         age: null,
-        experience: null,
-        status: 'active',
+        experience: toYear && fromYear ? toYear - fromYear : null,
+        status: rosterStatus === 1 ? 'active' : 'inactive',
         seasonStats: {
           season: '2024-25',
           gamesPlayed: 0,
@@ -77,40 +77,32 @@ const seedPlayers = async() => {
             assists: 0
           }
         },
-        isPredictionEligible: true
-      }));
+        isPredictionEligible: rosterStatus === 1
+      };
+    });
 
-         allPlayers.push(...transformedPlayers)
+    // Filter for only active players
+    const activePlayers = transformedPlayers.filter(player => player.status === 'active');
 
-         if(result.players.length < 0) {
-          console.log("Fewer players than requested. Assuming last page.");
-          hasMorePages = false
-         } else { 
-             currentPage++;
-         }
+    console.log(`Total players from API: ${transformedPlayers.length}`);
+    console.log(`Active players to insert: ${activePlayers.length}`);
+    console.log('Sample transformed player:', JSON.stringify(activePlayers[0], null, 2));
 
-         await new Promise(resolve => setTimeout(resolve,1000))
-     }
+    const players = await Player.insertMany(activePlayers);
+    console.log(`Successfully seeded ${players.length} current NBA players`);
+    return players;
 
-      console.log('Inserting players...');
-      const players = await Player.insertMany(allPlayers);
-
-    console.log(`Successfully seeded ${players.length} players`);
-    return players
-
-    }catch(error){
-        console.log("Error seeding players", error)
-        throw error;
-    }
-
+  } catch(error) {
+    console.log("Error seeding players:", error);
+    throw error;
+  }
 }
 
 export default seedPlayers;
 
-if(import.meta.url === `file://${process.argv[1]}`){
-    await connectDb();
-    await seedPlayers();
-    await mongoose.connection.close();
-    process.exit(0);
-
+if(import.meta.url === `file://${process.argv[1]}`) {
+  await connectDb();
+  await seedPlayers();
+  await mongoose.connection.close();
+  process.exit(0);
 }
