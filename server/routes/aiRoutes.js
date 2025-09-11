@@ -1,6 +1,7 @@
-import auth from "../middleware/auth";
+import auth from "../middleware/auth.js";
 import aiService from "../services/aiService";
 import express from 'express'
+
 
 const router = express.Router()
 
