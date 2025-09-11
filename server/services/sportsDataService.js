@@ -1,225 +1,250 @@
-import axios from 'axios'
-import dotenv from 'dotenv'
-
-dotenv.config()
+import axios from 'axios';
 
 class SportsDataService {
+  constructor() {
+    this.nbaBaseURL = 'https://stats.nba.com/stats';
+    this.headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Referer': 'https://stats.nba.com/',
+      'Accept': 'application/json',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Connection': 'keep-alive'
+    };
+  }
 
-    constructor(){
-        this.baseURL = 'https://api.balldontlie.io/v1'
-        this.headers = {
-            'Authorization' : process.env.BALLDONTLIE_API_KEY || ''
-        } 
-        this.timeout = 10000
-    }
-
-
-    async getTeams() {
-        try {
-            const response = await axios.get(`${this.baseURL}/teams`, {
-                headers : this.headers,
-                timeout: this.timeout
-            })
-
-            return response.data.data.map(team => ({
-                id: team.id,
-                name: team.full_name,
-                abbreviation: team.abbreviation,
-                city: team.city,
-                conference: team.conference,
-                division: team.division
-            
-            }))
-
-        }catch(error){
-             console.error('Error fetching teams:', error.message);
-             throw new Error('Failed to fetch NBA teams');
-
-        }
-    }
-
-    async getPlayers(page =1, perPage=100) {
-        try{
-            const response = await axios.get(`${this.baseURL}/players`, {
-                headers: this.headers,
-                params: {page, perPage},
-                timeout: this.timeout
-            });
-
-            return {
-                players: response.data.data.map(player => ({
-                    id: player.id,
-                    firstName: player.first_name,
-                    lastName: player.last_name,
-                    position: player.position,
-                    height: player.height_feet && player.height_inches
-                    ? `${player.height_feet}'${player.height_inches}`
-                    : null,
-                    weight: player.weight_pounds,
-                    team: {
-                        id: player.team.id,
-                        name: player.team.full_name,
-                        abbreviation: player.team.abbreviation
-                    }
-                })),
-                meta: response.data.meta
-            }
-
-        }catch(error){
-            console.error('Error fetching players:', error.message);
-            throw new Error('Failed to fetch NBA players');
-
-        }
-    }
-
-    async getGamesByDate(date) {
-        try {
-        const response = await axios.get(`${this.baseURL}/games`, {
+  async getTeams() {
+    try {
+      const response = await axios.get(`${this.nbaBaseURL}/leaguedashteamstats`, {
         headers: this.headers,
         params: {
-          dates: [date],
-          per_page: 100
-        },
-        timeout: this.timeout
+          Conference: '',
+          DateFrom: '',
+          DateTo: '',
+          Division: '',
+          GameScope: '',
+          GameSegment: '',
+          Height: '',
+          LastNGames: 0,
+          LeagueID: '00',
+          Location: '',
+          MeasureType: 'Base',
+          Month: 0,
+          OpponentTeamID: 0,
+          Outcome: '',
+          PORound: 0,
+          PaceAdjust: 'N',
+          PerMode: 'PerGame',
+          Period: 0,
+          PlayerExperience: '',
+          PlayerPosition: '',
+          PlusMinus: 'N',
+          Rank: 'N',
+          Season: '2024-25',
+          SeasonSegment: '',
+          SeasonType: 'Regular Season',
+          ShotClockRange: '',
+          StarterBench: '',
+          TeamID: 0,
+          TwoWay: 0,
+          VsConference: '',
+          VsDivision: ''
+        }
       });
-
-      return response.data.data.map(game => ({
-        id: game.id,
-        date: game.date,
-        homeTeam: {
-          id: game.home_team.id,
-          name: game.home_team.full_name,
-          abbreviation: game.home_team.abbreviation,
-          score: game.home_team_score
-        },
-        visitorTeam: {
-          id: game.visitor_team.id,
-          name: game.visitor_team.full_name,
-          abbreviation: game.visitor_team.abbreviation,
-          score: game.visitor_team_score
-        },
-        season: game.season,
-        status: game.status,
-        period: game.period,
-        time: game.time,
-        postseason: game.postseason
-      }))
-    } catch(error){
-        console.error("Error fetching games:", error.message)
-        throw new Error("Failed to fetch nba games")
-
+      
+      return response.data.resultSets[0].rowSet;
+    } catch (error) {
+      console.error('Error fetching teams:', error.response?.status, error.message);
+      throw new Error('Failed to fetch NBA teams');
     }
-    }
+  }
 
-    async getPlayerStats(gameId, playerId=null) {
-        try {
-        const params = {game_ids: [gameId]} 
-        if(playerId) params.player_ids = [playerId]
-
-        const response = await axios.get(`${this.baseURL}/stats`, {
+  async getPlayers() {
+    try {
+      const response = await axios.get(`${this.nbaBaseURL}/commonallplayers`, {
         headers: this.headers,
-        params,
-        timeout: this.timeout
+        params: {
+          LeagueID: '00',
+          Season: '2024-25',
+          IsOnlyCurrentSeason: '1'
+        }
       });
+      
+      return response.data.resultSets[0].rowSet;
+    } catch (error) {
+      console.error('Error fetching players:', error.response?.status, error.message);
+      throw new Error('Failed to fetch NBA players');
+    }
+  }
 
-      return response.data.data.map(stat => ({
-        id: stat.id,
-        player: {
-          id: stat.player.id,
-          firstName: stat.player.first_name,
-          lastName: stat.player.last_name,
-          position: stat.player.position
-        },
-        team: {
-          id: stat.team.id,
-          abbreviation: stat.team.abbreviation
-        },
-        game: {
-          id: stat.game.id,
-          date: stat.game.date
-        },
-        stats: {
-          points: stat.pts,
-          rebounds: stat.reb,
-          assists: stat.ast,
-          steals: stat.stl,
-          blocks: stat.blk,
-          turnovers: stat.turnover,
-          fieldGoalsMade: stat.fgm,
-          fieldGoalsAttempted: stat.fga,
-          fieldGoalPercentage: stat.fg_pct,
-          threePointersMade: stat.fg3m,
-          threePointersAttempted: stat.fg3a,
-          threePointPercentage: stat.fg3_pct,
-          freeThrowsMade: stat.ftm,
-          freeThrowsAttempted: stat.fta,
-          freeThrowPercentage: stat.ft_pct,
-          minutesPlayed: stat.min
+  // NEW: Get games by date
+  async getGamesByDate(date) {
+    try {
+      // Convert date to YYYY-MM-DD format if needed
+      let gameDate;
+      if (typeof date === 'string') {
+        gameDate = date.replace(/-/g, ''); // Remove dashes for NBA API
+      } else if (date instanceof Date) {
+        gameDate = date.toISOString().split('T')[0].replace(/-/g, '');
+      } else {
+        // Default to today
+        gameDate = new Date().toISOString().split('T')[0].replace(/-/g, '');
+      }
+
+      const response = await axios.get(`${this.nbaBaseURL}/scoreboardV2`, {
+        headers: this.headers,
+        params: {
+          DayOffset: 0,
+          LeagueID: '00',
+          gameDate: gameDate
         }
-
-      }))
-    }catch(error){
-        console.error('Error fetching player stats:', error.message);
-        throw new Error('Failed to fetch player statistics');
+      });
+      
+      // Parse the games data
+      const gameHeader = response.data.resultSets[0].rowSet;
+      const lineScore = response.data.resultSets[1].rowSet;
+      
+      return {
+        games: gameHeader,
+        scores: lineScore,
+        date: gameDate
+      };
+    } catch (error) {
+      console.error('Error fetching games by date:', error.message);
+      throw new Error('Failed to fetch NBA games');
     }
+  }
 
-    }
-
-    async searchPlayer(firstName,lastName) {
-        try{
-           const response = await axios.get(`${this.baseURL}/players`, {
-            headers: this.headers,
-            params: {
-                search: `${firstName,lastName}`,
-                perPage: 25
-            },
-            timeout: this.timeout
-        });
-
-        return response.data.data.map(player => ({
-            id: player.id,
-            firstName: player.first_name,
-            lastName: player.last_name,
-            position: player.position,
-            team: {
-                id: player.team.id,
-                name: player.team.full_name,
-                abbreviation: player.team.abbreviation
-            }
-        }))
-
-        }catch(error){
-            console.error('Error searching player:', error.message);
-            throw new Error('Failed to search for player');
-
+  // NEW: Search for a specific player
+  async searchPlayer(playerName) {
+    try {
+      const response = await axios.get(`${this.nbaBaseURL}/commonallplayers`, {
+        headers: this.headers,
+        params: {
+          LeagueID: '00',
+          Season: '2024-25',
+          IsOnlyCurrentSeason: '1'
         }
-
+      });
+      
+      const allPlayers = response.data.resultSets[0].rowSet;
+      
+      // Search for players matching the name
+      const searchResults = allPlayers.filter(playerRow => {
+        const fullName = playerRow[2]; // DISPLAY_FIRST_LAST
+        return fullName && fullName.toLowerCase().includes(playerName.toLowerCase());
+      });
+      
+      return searchResults;
+    } catch (error) {
+      console.error('Error searching player:', error.message);
+      throw new Error('Failed to search NBA players');
     }
+  }
 
-    async getTodaysGames() {
-        const today = new Date().toISOString().split('T')[0]
-        return await this.getGamesByDate(today); // When you write this.getGamesByDate(today), you are calling the getGamesByDate method that belongs to the SportsDataService object.
-    }
-
-    async healthCheck() {
-        try {
-            const response = await axios.get(`${this.baseURL}/teams`, {
-                headers: this.headers,
-                params: { per_page: 1 },
-                timeout: 5000
-            });
-            return {status: 'healthy', statusCode: response.status}
-        }catch(error){
-            return {
-                status: 'unhealthy',
-                error: error.message,
-                statusCode: error.response?.status || 500
-            }
+  // NEW: Get player details by ID
+  async getPlayerById(playerId) {
+    try {
+      const response = await axios.get(`${this.nbaBaseURL}/commonplayerinfo`, {
+        headers: this.headers,
+        params: {
+          PlayerID: playerId
         }
+      });
+      
+      return response.data.resultSets[0].rowSet[0];
+    } catch (error) {
+      console.error('Error fetching player details:', error.message);
+      throw new Error('Failed to fetch player details');
     }
+  }
 
+  // NEW: Get player stats for current season
+  async getPlayerStats(playerId, season = '2024-25') {
+    try {
+      const response = await axios.get(`${this.nbaBaseURL}/playerdashboardbyyearoveryear`, {
+        headers: this.headers,
+        params: {
+          PlayerID: playerId,
+          PerMode: 'PerGame',
+          Season: season,
+          SeasonType: 'Regular Season'
+        }
+      });
+      
+      return response.data.resultSets[1].rowSet; // Season totals regular season
+    } catch (error) {
+      console.error('Error fetching player stats:', error.message);
+      throw new Error('Failed to fetch player statistics');
+    }
+  }
 
+  // NEW: Get team schedule
+  async getTeamSchedule(teamId, season = '2024-25') {
+    try {
+      const response = await axios.get(`${this.nbaBaseURL}/teamgamelog`, {
+        headers: this.headers,
+        params: {
+          TeamID: teamId,
+          Season: season,
+          SeasonType: 'Regular Season'
+        }
+      });
+      
+      return response.data.resultSets[0].rowSet;
+    } catch (error) {
+      console.error('Error fetching team schedule:', error.message);
+      throw new Error('Failed to fetch team schedule');
+    }
+  }
 
+  // NEW: Get live game data
+  async getLiveGames() {
+    try {
+      const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+      
+      const response = await axios.get(`${this.nbaBaseURL}/scoreboardV2`, {
+        headers: this.headers,
+        params: {
+          DayOffset: 0,
+          LeagueID: '00',
+          gameDate: today
+        }
+      });
+      
+      return {
+        games: response.data.resultSets[0].rowSet,
+        scores: response.data.resultSets[1].rowSet
+      };
+    } catch (error) {
+      console.error('Error fetching live games:', error.message);
+      throw new Error('Failed to fetch live games');
+    }
+  }
+
+  // NEW: Get standings
+  async getStandings(season = '2024-25') {
+    try {
+      const response = await axios.get(`${this.nbaBaseURL}/leaguestandingsv3`, {
+        headers: this.headers,
+        params: {
+          LeagueID: '00',
+          Season: season,
+          SeasonType: 'Regular Season'
+        }
+      });
+      
+      return response.data.resultSets[0].rowSet;
+    } catch (error) {
+      console.error('Error fetching standings:', error.message);
+      throw new Error('Failed to fetch standings');
+    }
+  }
+
+  // Existing method - keep for compatibility
+  async getTodaysGames() {
+    return this.getLiveGames();
+  }
 }
 
-export default new SportsDataService()
+export default new SportsDataService();
