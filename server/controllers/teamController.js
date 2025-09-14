@@ -1,232 +1,300 @@
 import Team from "../models/Team.js";
+import sportsDataService from "../services/sportsDataService.js";
 
 const teamController = {
     // GET /api/teams
-    getAllTeams: async(req, res) => {
-        try{
-            const{conference,division,active=true} = req.query
+    getAllTeams: async (req, res) => {
+        try {
+            const { conference, division, active = true } = req.query;
 
-            const filter = {}
-            if(conference) filter.conference = conference
-            if(division) filter.division = division
-            if(active !== undefined)  filter.isActive = active === 'true'
+            const filter = {};
+            if (conference) filter.conference = conference;
+            if (division) filter.division = division;
+            if (active !== undefined) filter.isActive = active === 'true';
 
-            const teams = await Team.find(filter)
-            .sort({name:1})
+            const teams = await Team.find(filter).sort({ name: 1 });
 
             res.json({
                 teams,
-                count:teams.length
-            })
+                count: teams.length
+            });
 
-        }catch(error){
-             res.status(500).json({ error: error.message });
-
+        } catch (error) {
+            res.status(500).json({ error: error.message });
         }
     },
 
     // GET /api/teams/:teamId
-    getTeamById: async(req,res) => {
-        try{
-            const team = await Team.findOne({teamId: req.params.teamId})
+    getTeamById: async (req, res) => {
+        try {
+            const team = await Team.findOne({ teamId: req.params.teamId });
 
-             if (!team) {
-        return res.status(404).json({ error: 'Team not found' });
-      }
+            if (!team) {
+                return res.status(404).json({ error: 'Team not found' });
+            }
 
-      res.json({team})
+            res.json({ team });
 
-        } catch(error) {
-             res.status(500).json({ error: error.message });
-
+        } catch (error) {
+            res.status(500).json({ error: error.message });
         }
-    }, 
+    },
 
     // GET /api/teams/standings/:conference
-    getStandings: async(req,res) => {
-        try{
+    getStandings: async (req, res) => {
+        try {
+            const { conference } = req.params;
+            const { season = '2024-25' } = req.query;
 
-            const {conference} = req.params
-            const {season} = req.query
+            
+            const standingsData = await sportsDataService.getStandings(season);
+            
+            // Update local teams with fresh data
+            for (const standingRow of standingsData) {
+                const teamId = standingRow[0]; // TEAM_ID
+                const wins = standingRow[8]; // W
+                const losses = standingRow[9]; // L
+                const winPct = standingRow[10]; // W_PCT
 
-            const filter = {
+                await Team.findOneAndUpdate(
+                    { teamId: teamId.toString() },
+                    {
+                        'currentSeason.record.wins': wins,
+                        'currentSeason.record.losses': losses,
+                        'currentSeason.record.winPercentage': winPct
+                    }
+                );
+            }
+
+            // updated teams from local DB
+            const teams = await Team.find({
                 isActive: true,
                 conference: conference
-            }
-
-            if(season){
-                filter['currentSeason.season'] = season
-            }
-
-            const teams = await Team.find(filter)
-            .sort({
-                'currentSeason.record.winPercentage':-1,
+            }).sort({
+                'currentSeason.record.winPercentage': -1,
                 'currentSeason.record.wins': -1
-            
-            })
+            });
 
             res.json({
                 conference,
-                season: season || 'current',
-                standings: teams.map((team,index) => ({
-                    rank:index + 1,
-                    team:{
+                season,
+                standings: teams.map((team, index) => ({
+                    rank: index + 1,
+                    team: {
                         id: team.teamId,
                         name: team.name,
                         abbreviation: team.abbreviation,
                         logo: team.logo
                     },
-                    record:team.currentSeason.record,
-                    division:team.division
+                    record: team.currentSeason.record,
+                    division: team.division
+                })),
+                source: 'live'
+            });
+
+        } catch (error) {
+            // Fallback to cached data
+            const teams = await Team.find({
+                isActive: true,
+                conference: req.params.conference
+            }).sort({
+                'currentSeason.record.winPercentage': -1,
+                'currentSeason.record.wins': -1
+            });
+
+            res.json({
+                conference: req.params.conference,
+                season: req.query.season || 'current',
+                standings: teams.map((team, index) => ({
+                    rank: index + 1,
+                    team: {
+                        id: team.teamId,
+                        name: team.name,
+                        abbreviation: team.abbreviation,
+                        logo: team.logo
+                    },
+                    record: team.currentSeason.record,
+                    division: team.division
+                })),
+                source: 'cached'
+            });
+        }
+    },
+
+    // GET /api/teams/divisions/:division/standings
+    getDivisionStandings: async (req, res) => {
+        try {
+            const { division } = req.params;
+            const { season = '2024-25' } = req.query;
+
+            // Fetch and sync latest standings
+            try {
+                const standingsData = await sportsDataService.getStandings(season);
+                
+                for (const standingRow of standingsData) {
+                    const teamId = standingRow[0];
+                    const wins = standingRow[8];
+                    const losses = standingRow[9];
+                    const winPct = standingRow[10];
+
+                    await Team.findOneAndUpdate(
+                        { teamId: teamId.toString() },
+                        {
+                            'currentSeason.record.wins': wins,
+                            'currentSeason.record.losses': losses,
+                            'currentSeason.record.winPercentage': winPct
+                        }
+                    );
+                }
+            } catch (syncError) {
+                console.log('Standings sync failed, using cached data');
+            }
+
+            const teams = await Team.find({
+                isActive: true,
+                division: division
+            }).sort({ 'currentSeason.record.winPercentage': -1 });
+
+            res.json({
+                division,
+                teams: teams.map((team, index) => ({
+                    divisionRank: index + 1,
+                    team: {
+                        id: team.teamId,
+                        name: team.name,
+                        abbreviation: team.abbreviation
+                    },
+                    record: team.currentSeason.record
                 }))
             });
 
-        }catch(error) {
+        } catch (error) {
             res.status(500).json({ error: error.message });
-
         }
-    },
-
-    getDivisionStandings: async(req,res) => {
-        try {
-        const {division} = req.params
-        const {season} = req.query
-
-        const filter = {
-            isActive:true,
-            division:division
-        }
-
-        if(season){
-            filter['currentSeason.season'] = season;
-            
-        }
-
-        const teams = await Team.find(filter)
-        .sort({'currentSeason.record.winPercentage':-1})
-
-        res.json({
-            division,
-            teams: teams.map((team,index)=> ({
-                divisionRank: index + 1,
-                team:{
-                    id:team.teamId,
-                    name:team.name,
-                    abbreviation: team.abbreviation
-                },
-                record: team.currentSeason.record
-            }))
-        })
-    }catch(error){
-        res.status(500).json({ error: error.message });
-    }
     },
 
     // GET /api/teams/:teamId/stats
-    getTeamStats: async(req,res) => {
-        try{
-            const team = await Team.findOne({teamId:req.params.teamId})
+    getTeamStats: async (req, res) => {
+        try {
+            const { teamId } = req.params;
+            
+       
+            try {
+                const teamStatsData = await sportsDataService.getTeams();
+                const teamStats = teamStatsData.find(teamRow => teamRow[0].toString() === teamId);
+                
+                if (teamStats) {
+                    // Update local team with fresh stats
+                    await Team.findOneAndUpdate(
+                        { teamId },
+                        {
+                            'currentSeason.record.wins': teamStats[3],
+                            'currentSeason.record.losses': teamStats[4],
+                            'currentSeason.record.winPercentage': teamStats[5]
+                        }
+                    );
+                }
+            } catch (statsError) {
+                console.log('Team stats sync failed, using cached data');
+            }
+
+            const team = await Team.findOne({ teamId });
 
             if (!team) {
                 return res.status(404).json({ error: 'Team not found' });
             }
 
             res.json({
-                team:{
-                    name:team.name,
-                    abbreviation:team.abbreviation
+                team: {
+                    name: team.name,
+                    abbreviation: team.abbreviation
                 },
-                stats:team.stats,
-                team:team.currentSeason.record
-            })
+                stats: team.stats,
+                record: team.currentSeason.record
+            });
 
-        }catch(error){
+        } catch (error) {
             res.status(500).json({ error: error.message });
         }
     },
 
-    // POST /api/teams - Create/update team (for data syncing)
-
-    createOrUpdateTeam: async(req,res) => {
-        try{
+    createOrUpdateTeam: async (req, res) => {
+        try {
             const teamData = req.body;
 
             const team = await Team.findOneAndUpdate(
-                
-                {teamId:teamData.teamId},
+                { teamId: teamData.teamId },
                 teamData,
                 {
-                    new:true,
-                    upsert:true,
+                    new: true,
+                    upsert: true,
                     runValidators: true
                 }
-            )
+            );
+
             res.json({
                 message: team.isNew ? 'Team Created' : 'Team Updated',
                 team
-            })
-        }catch(error){
+            });
+        } catch (error) {
             res.status(500).json({ error: error.message });
-
         }
-    }, 
+    },
 
-    // PUT /api/teams/:teamId/record - Update team record
+    updateTeamRecord: async (req, res) => {
+        try {
+            const { teamId } = req.params;
+            const { wins, losses, season } = req.body;
 
-    updateTeamRecord: async(req,res) => {
-        try{
-
-            const {teamId} = req.params
-            const {wins, losses, season} = req.body
-
-            const winPercentage = wins / (wins +losses)
+            const winPercentage = wins / (wins + losses);
 
             const team = await Team.findOneAndUpdate(
-                {teamId},
+                { teamId },
                 {
-                    'currentSeason.season':season,
-                    'currentSeason.record.wins':wins,
-                    'currentSeason.record.losses':losses,
-                    'currentSeason.record.winPercentage':winPercentage
+                    'currentSeason.season': season,
+                    'currentSeason.record.wins': wins,
+                    'currentSeason.record.losses': losses,
+                    'currentSeason.record.winPercentage': winPercentage
                 },
-                {new:true}
-            )
-             if (!team) {
+                { new: true }
+            );
+
+            if (!team) {
                 return res.status(404).json({ error: 'Team not found' });
             }
 
             res.json({
                 message: 'Team record updated',
                 team
-            })
-        }catch(error){
-             res.status(500).json({ error: error.message });
+            });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
         }
     },
-        // PUT /api/teams/:teamId/stats - Update team stats
-  updateTeamStats: async (req, res) => {
-    try {
-      const { teamId } = req.params;
-      const { stats } = req.body;
 
-      const team = await Team.findOneAndUpdate(
-        { teamId },
-        { stats },
-        { new: true }
-      );
+    updateTeamStats: async (req, res) => {
+        try {
+            const { teamId } = req.params;
+            const { stats } = req.body;
 
-      if (!team) {
-        return res.status(404).json({ error: 'Team not found' });
-      }
+            const team = await Team.findOneAndUpdate(
+                { teamId },
+                { stats },
+                { new: true }
+            );
 
-      res.json({
-        message: 'Team stats updated',
-        team
-      });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
+            if (!team) {
+                return res.status(404).json({ error: 'Team not found' });
+            }
+
+            res.json({
+                message: 'Team stats updated',
+                team
+            });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
     }
-}
-}
+};
 
 export default teamController;
