@@ -2,7 +2,7 @@
 import User from '../models/User.js';
 import Prediction from '../models/Prediction.js';
 import PlayerStats from '../models/PlayerStats.js';
-import Game from '../models/Game.js';
+import Game from '../models/game.js';
 import LeagueMembership from '../models/LeagueMembership.js';
 
 const statsController = {
