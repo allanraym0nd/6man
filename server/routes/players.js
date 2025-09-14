@@ -7,6 +7,7 @@ const router = express.Router()
 
 // Public player routes
 router.get('/', playerController.getAllPlayers);
+router.get('/search/:name', playerController.searchPlayer)
 router.get('/:playerId', playerController.getPlayerById);
 router.get('/team/:teamId', playerController.getTeamRoster);
 router.get('/prediction-eligible', statsRateLimit, playerController.getPredictionEligiblePlayers);
