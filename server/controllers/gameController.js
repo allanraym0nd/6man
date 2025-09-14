@@ -1,175 +1,309 @@
 import Game from "../models/game.js";
+import sportsDataService from "../services/sportsDataService.js";
 
 const gameController = {
-   // GET /api/games/today
+    // GET /api/games/today
+    getTodaysGames: async (req, res) => {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            
+            // live data from NBA.com
+            const nbaGamesData = await sportsDataService.getGamesByDate(today);
+            
+            // Transform NBA data format to your Game model format
+            const transformedGames = nbaGamesData.games.map(gameRow => ({
+                gameId: gameRow[2].toString(), // GAME_ID
+                gameDate: new Date(),
+                gameTime: gameRow[4] || 'TBD', // GAME_TIME
+                homeTeam: {
+                    id: gameRow[6].toString(), // HOME_TEAM_ID
+                    name: gameRow[7], // HOME_TEAM_NAME
+                    abbreviation: gameRow[8] // HOME_TEAM_ABBR
+                },
+                awayTeam: {
+                    id: gameRow[9].toString(), // VISITOR_TEAM_ID
+                    name: gameRow[10], // VISITOR_TEAM_NAME
+                    abbreviation: gameRow[11] // VISITOR_TEAM_ABBR
+                },
+                status: gameRow[3] === 1 ? 'scheduled' : gameRow[3] === 2 ? 'live' : 'completed',
+                isPredictionActive: gameRow[3] === 1, // Only scheduled games
+                predictionDeadline: new Date(Date.now() + 30 * 60 * 1000) // 30 mins before
+            }));
 
-   getTodaysGames : async(req,res) => {
-       try {
-       const today = new Date()
-       const startOfDay = new Date(today.setHours(0,0,0,0))
-       const endOfDay = new Date(today.setHours(23,59,59,999))
+            // Sync to local DB for caching
+            for (const gameData of transformedGames) {
+                await Game.findOneAndUpdate(
+                    { gameId: gameData.gameId },
+                    gameData,
+                    { upsert: true, new: true }
+                );
+            }
 
-       const games = await Game.find({
-           gameDate: ({$gte: startOfDay, $lte: endOfDay}),
-           status: {$in : ['scheduled', 'live']}
-       })
-       .sort({gameTime: 1})
+            res.json({
+                date: today,
+                games: transformedGames,
+                total: transformedGames.length
+            });
 
-       res.json({
-           date:startOfDay.toString(),
-           games,
-           total: games.length  
-       })
+        } catch (error) {
+            // Fallback to local DB if NBA API fails
+            const startOfDay = new Date();
+            startOfDay.setHours(0,0,0,0);
+            const endOfDay = new Date();
+            endOfDay.setHours(23,59,59,999);
 
-       } catch(error) {
-           res.status(500).json({error: error.message})
-       }
-   },
-   getSchedule: async(req,res) => {
-       // GET /api/games/schedule
-       try {
-       const {startDate,endDate, team, status} = req.query
+            const games = await Game.find({
+                gameDate: { $gte: startOfDay, $lte: endOfDay },
+                status: { $in: ['scheduled', 'live'] }
+            }).sort({ gameTime: 1 });
 
-       const filter = {} // empty filter object
-       if(startDate && endDate) {
-           filter.gameDate = {
-               $gte: new Date(startDate), 
-               $lte: new Date(endDate) 
-           }
-       } else if (startDate) {
-                filter.gameDate= {$gte:new Date(startDate)} 
-       }
+            res.json({
+                date: startOfDay.toISOString().split('T')[0],
+                games,
+                total: games.length,
+                source: 'cached' // Indicate fallback data
+            });
+        }
+    },
 
-       if (team) {
-           filter.$or = [
-               {'homeTeam.abbreviation': team},
-               {'awayTeam.abbreviation':team},
-           ];
-       }
+    // GET /api/games/schedule
+    getSchedule: async (req, res) => {
+        try {
+            const { startDate, endDate, team, status } = req.query;
+            
+            if (!startDate) {
+                return res.status(400).json({ error: 'startDate is required' });
+            }
 
-       if(status) {
-           filter.status = status
-       }
+            // For single date, use NBA API
+            if (!endDate || startDate === endDate) {
+                const nbaGamesData = await sportsDataService.getGamesByDate(startDate);
+                const transformedGames = nbaGamesData.games.map(gameRow => ({
+                    gameId: gameRow[2].toString(),
+                    gameDate: new Date(startDate),
+                    homeTeam: {
+                        id: gameRow[6].toString(),
+                        name: gameRow[7],
+                        abbreviation: gameRow[8]
+                    },
+                    awayTeam: {
+                        id: gameRow[9].toString(),
+                        name: gameRow[10],
+                        abbreviation: gameRow[11]
+                    },
+                    status: gameRow[3] === 1 ? 'scheduled' : gameRow[3] === 2 ? 'live' : 'completed'
+                }));
 
-       const games = await Game.find(filter)
-       .sort({gameDate: 1, gameTime:1})
-       .limit(100)
+              
+                const filteredGames = team ? transformedGames.filter(game => 
+                    game.homeTeam.abbreviation === team || game.awayTeam.abbreviation === team
+                ) : transformedGames;
 
-       res.json({
-           games,
-           total:games.length,
-           filter
-       })
-   }catch(error) {
-       res.status(500).json({ error: error.message });
-   }
-   
-       },
+                return res.json({
+                    games: filteredGames,
+                    total: filteredGames.length,
+                    source: 'live'
+                });
+            }
 
-           // GET /api/games/:gameId
-       getGameById: async (req,res) => {
+            // For date ranges, fall back to local DB
+            const filter = {
+                gameDate: {
+                    $gte: new Date(startDate),
+                    $lte: new Date(endDate)
+                }
+            };
 
-       try { 
-           const game = await Game.findOne({gameId: req.params.gameId})
+            if (team) {
+                filter.$or = [
+                    { 'homeTeam.abbreviation': team },
+                    { 'awayTeam.abbreviation': team }
+                ];
+            }
 
-           if(!game) {
-               return res.status(404).json({error:'Game not found'})
-           }
-           res.json({game})
-       }catch(error) {
-           res.status(500).json({ error: error.message })
+            if (status) {
+                filter.status = status;
+            }
 
-       }
-   },
-   // GET /api/games/live
-       getLiveGames: async(req,res) => {
+            const games = await Game.find(filter)
+                .sort({ gameDate: 1, gameTime: 1 })
+                .limit(100);
 
-           try {
-               const liveGames = await Game.find({status:'live'})
-               .sort({gameDate:1});
+            res.json({
+                games,
+                total: games.length,
+                source: 'cached'
+            });
 
-               res.json({liveGames, count: liveGames.length})
-           }catch(error) {
-               res.status(500).json({error:error.message})
-           }
-       },
-       // POST /api/games - Create/update game (for data syncing from NBA API)
-       createOrUpdateGame: async(req,res) => {
-           try{
-               const gameData = req.body 
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
 
-               const game = await Game.findOneAndUpdate(
-                   {gameId: gameData.gameId}, 
-                   gameData, 
-                   {
-                       new:true,
-                       upsert:true,
-                       runValidators:true
-                   }
-               )
-               res.json({
-                   message: game.isNew ? 'Game Created' : 'Game Updated',
-                   game
-               }
-               )
-           } catch(error) {
-               res.status(500).json({error: error.message})
-             
-           }
-       },
-       // PUT /api/games/:gameId/result
+    // GET /api/games/:gameId
+    getGameById: async (req, res) => {
+        try {
+            // Try local DB first
+            let game = await Game.findOne({ gameId: req.params.gameId });
+            
+            if (!game) {
+            
+                return res.status(404).json({ error: 'Game not found' });
+            }
 
-       updateGameResult: async(req,res) => {
-           try{
-               const {gameId} =req.params
-               const {score, status, gameStats} = req.body;
+            res.json({ game });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
 
-               const game = await Game.findOneAndUpdate(
-                   {gameId},
-                   {
-                       score,
-                       gameStats,
-                       status,
-                       isPredictionActive:false // Close predictions when game ends
-                   },
-                   {new: true}
-               ); 
+    // GET /api/games/live
+    getLiveGames: async (req, res) => {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const nbaGamesData = await sportsDataService.getGamesByDate(today);
+            
+            // Filter for only live games
+            const liveGames = nbaGamesData.games
+                .filter(gameRow => gameRow[3] === 2) // Live status
+                .map(gameRow => ({
+                    gameId: gameRow[2].toString(),
+                    gameDate: new Date(),
+                    homeTeam: {
+                        id: gameRow[6].toString(),
+                        name: gameRow[7],
+                        abbreviation: gameRow[8]
+                    },
+                    awayTeam: {
+                        id: gameRow[9].toString(),
+                        name: gameRow[10],
+                        abbreviation: gameRow[11]
+                    },
+                    status: 'live'
+                }));
 
-           if (!game) {
-               return res.status(404).json({ error: 'Game not found' });
-     } 
+            res.json({
+                liveGames,
+                count: liveGames.length
+            });
 
-               res.json({
-                   message:'game result updated',
-                   game
-               })
-           }catch(error) {
-                res.status(500).json({ error: error.message });
-           }
-       },
+        } catch (error) {
+            // Fallback to local DB
+            const liveGames = await Game.find({ status: 'live' })
+                .sort({ gameDate: 1 });
 
-       // GET /api/games/predictions-active - Get games available for predictions
-          getPredictionActiveGames: async(req,res) => {
-           try {
-               const now = new Date();
+            res.json({
+                liveGames,
+                count: liveGames.length,
+                source: 'cached'
+            });
+        }
+    },
 
-               const games = await Game.find({
-                   isPredictionActive:true,
-                   predictionDeadline: {$gt: now}, //deadline hasnt passed
-                   status:'scheduled'
-               })
-               .sort({gameDate: 1})
+    // POST /api/games - Create/update game
+    createOrUpdateGame: async (req, res) => {
+        try {
+            const gameData = req.body;
 
-               res.json({
-                   games,
-                   count:games.length,
-                   message: games.length === 0 ? 'No games available for predictions right now' : null
-               })
-           }catch(error) {
-               res.status(500).json({ error: error.message });
-           }      
-       }
+            const game = await Game.findOneAndUpdate(
+                { gameId: gameData.gameId },
+                gameData,
+                {
+                    new: true,
+                    upsert: true,
+                    runValidators: true
+                }
+            );
 
-}; 
+            res.json({
+                message: game.isNew ? 'Game Created' : 'Game Updated',
+                game
+            });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    // PUT /api/games/:gameId/result
+    updateGameResult: async (req, res) => {
+        try {
+            const { gameId } = req.params;
+            const { score, status, gameStats } = req.body;
+
+            const game = await Game.findOneAndUpdate(
+                { gameId },
+                {
+                    score,
+                    gameStats,
+                    status,
+                    isPredictionActive: false
+                },
+                { new: true }
+            );
+
+            if (!game) {
+                return res.status(404).json({ error: 'Game not found' });
+            }
+
+            res.json({
+                message: 'Game result updated',
+                game
+            });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    // GET /api/games/predictions-active
+    getPredictionActiveGames: async (req, res) => {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const nbaGamesData = await sportsDataService.getGamesByDate(today);
+            
+            // Filter for scheduled games only
+            const predictionActiveGames = nbaGamesData.games
+                .filter(gameRow => gameRow[3] === 1) // Scheduled status
+                .map(gameRow => ({
+                    gameId: gameRow[2].toString(),
+                    gameDate: new Date(),
+                    homeTeam: {
+                        id: gameRow[6].toString(),
+                        name: gameRow[7],
+                        abbreviation: gameRow[8]
+                    },
+                    awayTeam: {
+                        id: gameRow[9].toString(),
+                        name: gameRow[10],
+                        abbreviation: gameRow[11]
+                    },
+                    status: 'scheduled',
+                    isPredictionActive: true,
+                    predictionDeadline: new Date(Date.now() + 30 * 60 * 1000)
+                }));
+
+            res.json({
+                games: predictionActiveGames,
+                count: predictionActiveGames.length,
+                message: predictionActiveGames.length === 0 ? 'No games available for predictions right now' : null
+            });
+
+        } catch (error) {
+            // Fallback to local DB
+            const now = new Date();
+            const games = await Game.find({
+                isPredictionActive: true,
+                predictionDeadline: { $gt: now },
+                status: 'scheduled'
+            }).sort({ gameDate: 1 });
+
+            res.json({
+                games,
+                count: games.length,
+                message: games.length === 0 ? 'No games available for predictions right now' : null,
+                source: 'cached'
+            });
+        }
+    }
+};
 
 export default gameController;
