@@ -74,7 +74,7 @@ const teamController = {
                 'currentSeason.record.winPercentage': -1,
                 'currentSeason.record.wins': -1
             });
-
+            
             res.json({
                 conference,
                 season,
