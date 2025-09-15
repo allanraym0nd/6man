@@ -3,7 +3,7 @@ import axios from "axios"
 class aiService {
 
     constructor() {
-        this.baseURl('')
+        this.baseURl('http://localhost:8000')
         this.client = axios.create({
             baseURL:this.baseURL,
             timeout:10000,
@@ -46,4 +46,4 @@ class aiService {
 
 }
 
-export default aiService
+export default new aiService()
