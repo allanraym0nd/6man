@@ -125,12 +125,12 @@ const playerController = {
         try {
             const { playerId } = req.params;
             
-            // Try to get current season stats from NBA.com
+    
             try {
                 const playerStats = await sportsDataService.getPlayerStats(playerId);
                 if (playerStats && playerStats.length > 0) {
                     const statsRow = playerStats[0];
-                    // Update player with fresh stats
+                    
                     await Player.findOneAndUpdate(
                         { playerId },
                         {
