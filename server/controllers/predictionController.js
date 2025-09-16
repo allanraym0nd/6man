@@ -74,32 +74,178 @@ const predictionController = {
   },
 
   // POST /api/predictions/ai
-  createAIPrediction: async (req, res) => {
+
+  createAIPredictions: async(req,res) => {
     try {
-      const { gameId, gameDate, player, predictions, aiModel, confidence } = req.body;
+      const {gameId, gameDate, playerId, aiModel = "random_forest"} = req.body
+      
+      contextResponse = await axios.get(`http://localhost:${process.env.PORT || 5000}/api/playerstats/prediction-context/${playerId}`, {
+        params: {gameId}
+      });
+
+      const {player, recentForm, seasonAverages} = contextResponse.data
+
+      if(!player || !seasonAverages) {
+        res.status(400).json({ error: 'Insufficient player data for prediction' })
+      }
+
+      const playerFeatures = { 
+
+        player_id: parseInt(playerId),
+        season_avg_points: seasonAverages.points || 0,
+        season_avg_rebounds: seasonAverages.rebounds || 0,
+        season_avg_assists: seasonAverages.assists || 0,
+        season_avg_minutes: seasonAverages.minutes || 0,
+        games_played: seasonAverages.gamesPlayed || 0,
+
+        recent_points: recentForm.points > 0 ?
+          recentForm.reduce((sum,game) => sum + game.stats.points, 0)/ recentForm.length : seasonAverages.points,
+        recent_rebounds: recentForm.length > 0 ?
+          recentForm.reduce((sum, game) => sum + game.stats.rebounds, 0) / recentForm.length : seasonAverages.rebounds,
+        recent_assists: recentForm.length > 0 ?
+          recentForm.reduce((sum, game) => sum + game.stats.assists, 0) / recentForm.length : seasonAverages.assists,
+
+        home_game: true,
+        rest_days: 1,
+
+        position: player.position || 'F',
+        team: player.team?.abbreviation || 'UNK'  
+
+      }
+
+      const mlService = await aiService.predictPlayerService(playerFeatures)
+      const {predictions: mlPrediction, model_performance} = req.body 
 
       const aiPrediction = new Prediction({
-        type: 'ai',
-        gameId,
-        gameDate,
-        player,
-        predictions,
+        type:'ai',
+        gameId, 
+        gameDate, 
+        player: {
+          id: playerId,
+          name: player.fullName,
+          team: player.team
+        },
+        predictions: {
+          points: Math.round(mlPrediction.points * 10) / 10,
+          rebounds: Math.round(mlPrediction.rebounds * 10) / 10,
+          assists: Math.round(mlPrediction.assists * 10) / 10
+        },
         aiModel,
-        confidence,
-        status: 'pending'
-      });
+        confidence: model_performance || 0.85,
+        metadata: {
+          playerFeatures,
+          modelPerformance: model_performance
+        },
+         status: 'pending'
+      })
 
-      await aiPrediction.save();
+      await Prediction.save()
 
       res.status(201).json({
-        message: 'AI prediction created successfully',
-        prediction: aiPrediction
-      });
-    } catch (error) {
-      if (error.code === 11000) {
+        message: 'Ai prediction generated successfully',
+        prediction:aiPrediction,
+        modelConfidence: model_performance
+      })
+
+    }catch(error) {
+       console.error('AI Prediction Error:', error.message);
+        if (error.code === 11000) {
         return res.status(400).json({ error: 'AI prediction already exists for this player in this game' });
       }
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: 'Failed to generate AI prediction: ' + error.message });
+    }
+  },
+
+
+    // POST /api/predictions/ai/batch - Generate predictions for multiple players
+  generateBatchAIPredictions: async (req, res) => {
+    try {
+      const { gameId, gameDate, playerIds } = req.body;
+      
+      if (!playerIds || !Array.isArray(playerIds) || playerIds.length === 0) {
+        return res.status(400).json({ error: 'playerIds array is required' });
+      }
+
+      const predictions = [];
+      const playersData = [];
+
+      // Gather data for all players
+      for (const playerId of playerIds) {
+        try {
+          const contextResponse = await axios.get(`http://localhost:${process.env.PORT || 5000}/api/playerstats/prediction-context/${playerId}`, {
+            params: { gameId }
+          });
+
+          const { player, recentForm, seasonAverages } = contextResponse.data;
+          
+          if (player && seasonAverages) {
+            playersData.push({
+              player_id: parseInt(playerId),
+              player,
+              season_avg_points: seasonAverages.points || 0,
+              season_avg_rebounds: seasonAverages.rebounds || 0,
+              season_avg_assists: seasonAverages.assists || 0,
+              recent_points: recentForm.length > 0 ? 
+                recentForm.reduce((sum, game) => sum + game.stats.points, 0) / recentForm.length : seasonAverages.points,
+              recent_rebounds: recentForm.length > 0 ?
+                recentForm.reduce((sum, game) => sum + game.stats.rebounds, 0) / recentForm.length : seasonAverages.rebounds,
+              recent_assists: recentForm.length > 0 ?
+                recentForm.reduce((sum, game) => sum + game.stats.assists, 0) / recentForm.length : seasonAverages.assists,
+              home_game: true,
+              rest_days: 1
+            });
+          }
+        } catch (playerError) {
+          console.error(`Failed to get context for player ${playerId}:`, playerError.message);
+        }
+      }
+
+      if (playersData.length === 0) {
+        return res.status(400).json({ error: 'No valid player data found' });
+      }
+
+      // Call batch prediction
+      const batchResponse = await aiService.batchPredict(playersData);
+      
+      // Save all predictions
+      for (const result of batchResponse.batch_predictions) {
+        const playerData = playersData.find(p => p.player_id === result.player_id);
+        
+        if (playerData && result.predictions) {
+          const aiPrediction = new Prediction({
+            type: 'ai',
+            gameId,
+            gameDate,
+            player: {
+              id: result.player_id.toString(),
+              name: playerData.player.fullName,
+              team: playerData.player.team
+            },
+            predictions: {
+              points: Math.round(result.predictions.points * 10) / 10,
+              rebounds: Math.round(result.predictions.rebounds * 10) / 10,
+              assists: Math.round(result.predictions.assists * 10) / 10
+            },
+            aiModel: 'random_forest',
+            confidence: 0.85,
+            status: 'pending'
+          });
+
+          await aiPrediction.save();
+          predictions.push(aiPrediction);
+        }
+      }
+
+      res.status(201).json({
+        message: `Generated ${predictions.length} AI predictions`,
+        predictions,
+        playersProcessed: playersData.length,
+        totalRequested: playerIds.length
+      });
+
+    } catch (error) {
+      console.error('Batch AI Prediction Error:', error.message);
+      res.status(500).json({ error: 'Failed to generate batch predictions: ' + error.message });
     }
   },
 
