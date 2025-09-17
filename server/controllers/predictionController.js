@@ -75,7 +75,7 @@ const predictionController = {
 
   // POST /api/predictions/ai
 
-  createAIPredictions: async(req,res) => {
+  createAIPrediction: async(req,res) => {
     try {
       const {gameId, gameDate, playerId, aiModel = "random_forest"} = req.body
       
