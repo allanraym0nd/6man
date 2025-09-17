@@ -1,5 +1,5 @@
 import auth from "../middleware/auth.js";
-import aiService from "../services/aiService";
+import aiService from "../services/aiService.js";
 import express from 'express'
 
 
