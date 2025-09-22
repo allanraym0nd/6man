@@ -156,6 +156,7 @@ const Dashboard = () => {
             <AIPredictionCard 
               predictions={dashboardData.aiPredictions}
               onRefresh={loadDashboardData}
+              games={dashboardData.todaysGames}
             />
             <UserPredictionCard 
               games={dashboardData.todaysGames}
