@@ -52,8 +52,7 @@ const SignupForm = ({ onSwitchToLogin, onClose }) => {
     }
 
     const signUpData = {
-      firstName: formData.firstName,
-      lastName: formData.lastName,
+      username: `${formData.firstName} ${formData.lastName}`, 
       email: formData.email,
       password: formData.password
 
@@ -360,3 +359,5 @@ const SignupForm = ({ onSwitchToLogin, onClose }) => {
     </div>
   );
 }
+
+export default SignupForm;
