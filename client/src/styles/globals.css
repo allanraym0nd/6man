@@ -512,6 +512,143 @@ body {
   font-size: 0.9rem;
 }
 
+/* Add these additional classes to your globals.css */
+
+.recent-predictions {
+  max-height: 450px;
+  overflow-y: auto;
+}
+
+.prediction-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.prediction-item:last-child {
+  border-bottom: none;
+}
+
+.prediction-info {
+  flex: 1;
+}
+
+.player-name {
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 0.25rem;
+}
+
+.game-info {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.prediction-stats-mini {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.25rem;
+}
+
+.prediction-source {
+  font-size: 0.7rem;
+  color: #64748b;
+  font-style: italic;
+  margin-top: 0.25rem;
+}
+
+.prediction-status {
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.status-correct {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.status-pending {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+}
+
+.status-incorrect {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+/* Add these additional classes to your globals.css */
+
+.league-standings {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+.standings-column {
+  background: rgba(10, 14, 39, 0.3);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.standings-header {
+  font-weight: 700;
+  color: #00d4aa;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.team-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.team-row:last-child {
+  border-bottom: none;
+}
+
+.team-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.team-rank {
+  width: 24px;
+  height: 24px;
+  background: rgba(0, 212, 170, 0.2);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #00d4aa;
+}
+
+.team-name {
+  font-weight: 600;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+}
+
+.team-record {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
 @media (max-width: 1200px) {
   .dashboard-grid {
     grid-template-columns: 1fr;
