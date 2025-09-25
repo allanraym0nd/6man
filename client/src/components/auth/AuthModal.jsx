@@ -1,15 +1,16 @@
+// src/components/auth/AuthModal.jsx
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import LoginForm from './LoginForm';
 import SignupForm from './SignUpForm';
 
-const AuthModal = () => {
-    const [currentForm,setCurrentForm] = useState('login')
+const AuthModal = ({ isOpen, onClose }) => {
+  const [currentForm, setCurrentForm] = useState('login'); // 'login' or 'signup'
 
-    if(!isOpen) return null
+  if (!isOpen) return null;
 
-    return (
-         <div style={{
+  return (
+    <div style={{
       position: 'fixed',
       top: 0,
       left: 0,
@@ -47,22 +48,20 @@ const AuthModal = () => {
           <X size={16} />
         </button>
 
-
         {currentForm === 'login' ? (
-            <LoginForm 
-            onSwitchToSignUp ={() => setCurrentForm('signup')}
+          <LoginForm 
+            onSwitchToSignup={() => setCurrentForm('signup')}
             onClose={onClose}
-            />
-
+          />
         ) : (
-            <SignupForm 
+          <SignupForm 
             onSwitchToLogin={() => setCurrentForm('login')}
             onClose={onClose}
-            />
+          />
         )}
+      </div>
     </div>
-    </div>
-    )
-}
+  );
+};
 
 export default AuthModal;
