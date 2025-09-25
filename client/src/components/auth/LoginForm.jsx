@@ -1,34 +1,33 @@
-import React,{useState} from "react";
-import { useAuth } from "../../contexts/AuthContext";
+// src/components/auth/LoginForm.jsx
+import React, { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 
-const LoginForm = ({onSwitchToSignUp, onClose}) => {
-    const [formData,setFormData] = useState({ 
-        email:'',
-        password:''
-    })
-    const [showPassword,setShowPassword] = useState(false)
+const LoginForm = ({ onSwitchToSignup, onClose }) => {
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  
+  const { login, loading, error, clearError } = useAuth();
 
-    const {login, loading, error, clearError} = useAuth()
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (error) clearError();
+  };
 
-    const handleChange = (e) => {
-        const {name,value} = e.target
-        setFormData(prev => ({...prev, [name]: value}))
-        if(error) clearError();
-
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const result = await login(formData.email, formData.password);
+    if (result.success && onClose) {
+      onClose();
     }
+  };
 
-    const handleSubmit = async() => {
-        e.preventDefault()
-    const result = await login(formData.email, formData.password)
-    if(result.success && onClose) {
-        onClose()
-    }
-    }
-
-
-    return (
-        <div className="glass-card" style={{ padding: '32px', width: '100%', maxWidth: '400px' }}>
+  return (
+    <div className="glass-card" style={{ padding: '32px', width: '100%', maxWidth: '400px' }}>
       <div style={{ textAlign: 'center', marginBottom: '32px' }}>
         <h2 style={{ 
           fontSize: '28px', 
@@ -46,7 +45,7 @@ const LoginForm = ({onSwitchToSignUp, onClose}) => {
         </p>
       </div>
 
-       {error && (
+      {error && (
         <div style={{
           background: 'rgba(239, 68, 68, 0.1)',
           border: '1px solid rgba(239, 68, 68, 0.3)',
@@ -189,8 +188,4 @@ const LoginForm = ({onSwitchToSignUp, onClose}) => {
   );
 };
 
-
-    
-
-
-
+export default LoginForm;
