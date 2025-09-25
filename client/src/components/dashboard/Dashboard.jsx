@@ -7,7 +7,7 @@ import UserPredictionCard from './UserPredictionCard';
 import StatsLeadersCard from './StatsLeadersCard';
 import LeaderboardCard from './LeaderboardCard';
 import RecentPredictionsCard from './RecentPredictionsCard';
-import StandingsPerformanceCard from './StandingsPerformanceCard';
+import StandingsCard from './StandingsCard';
 
 
 const Dashboard = () => {
@@ -182,10 +182,9 @@ const Dashboard = () => {
 
         {/* Bottom Section */}
         <div className="bottom-grid">
-          <StandingsPerformanceCard 
-            standings={dashboardData.standings}
-            userStats={dashboardData.userStats}
-          />
+          <StandingsCard 
+          standings={dashboardData.standings}
+           />
         </div>
       </div>
     </div>
