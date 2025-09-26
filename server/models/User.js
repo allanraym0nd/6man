@@ -50,7 +50,7 @@ userSchema.pre('save', async function(next) {
 // 'this' refers to the Mongoose document that is currently being processed. I
 
 // match/confirm password
-userSchema.method.comparePassword = async function(candidatePassword) {
+userSchema.methods.comparePassword = async function(candidatePassword) {
     return bcrypt.compare(candidatePassword, this.password)
 }
 
