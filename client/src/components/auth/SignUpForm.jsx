@@ -1,3 +1,4 @@
+// src/components/auth/SignupForm.jsx
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
@@ -11,58 +12,59 @@ const SignupForm = ({ onSwitchToLogin, onClose }) => {
     confirmPassword: ''
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [confirmPassword, setConfirmPassword] = useState(false)
-  const [validationErrors,setValidationErrors] = useState({})
-
-    
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
+  
   const { signup, loading, error, clearError } = useAuth();
 
   const validateForm = () => {
-    const errors = {}
-
-    if(!formData.firstName.trim()) errors.firstName = 'First name is required'
-    if(!formData.lastName.trim()) errors.lastName = 'Last name is required';
-    if(!formData.email.trim()) errors.email = 'Email is required';
-    if(!formData.password) errors.password = 'Password is required';
-    if(formData.password.length < 6) errors.password = 'Password must be at least 6 characters';
-    if(formData.password !== formData.confirmPassword) { 
-        errors.confirmPassword = 'Passwords do not match';
+    const errors = {};
+    
+    if (!formData.firstName.trim()) errors.firstName = 'First name is required';
+    if (!formData.lastName.trim()) errors.lastName = 'Last name is required';
+    if (!formData.email.trim()) errors.email = 'Email is required';
+    if (!formData.password) errors.password = 'Password is required';
+    if (formData.password.length < 6) errors.password = 'Password must be at least 6 characters';
+    if (formData.password !== formData.confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
     }
-    return errors; 
+    
+    return errors;
+  };
 
-  }
-
-  const handleChange = () => {
-    const {name, value} = e.target
-    setFormData(prev => ({...prev, [name]: value}))
-
-    if(validationErrors[name]) {
-        setValidationErrors(prev => ({...prev, [name]: ''}))
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear validation errors as user types
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({ ...prev, [name]: '' }));
     }
-      if (error) clearError();
-  }
+    if (error) clearError();
+  };
 
-  const handleSubmit = async(e) => {
-    e.preventDefault()
-
-    const errors = validateForm()
-    if(Object.keys(errors).length > 0){
-        setValidationErrors(errors)
-        return;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
     }
 
-    const signUpData = {
-      username: `${formData.firstName} ${formData.lastName}`, 
+    const signupData = {
+      username:`${formData.firstName}${formData.lastName}`,
       email: formData.email,
       password: formData.password
+    };
 
+    console.log('Sending signup data:', signupData); 
+
+    const result = await signup(signupData);
+    if (result.success && onClose) {
+      onClose();
     }
-
-    const result = await signup(signUpData)
-    if(resultSuccess && onClose)
-        onClose()
-
-  }
+  };
 
   return (
     <div className="glass-card" style={{ padding: '32px', width: '100%', maxWidth: '400px' }}>
@@ -358,6 +360,6 @@ const SignupForm = ({ onSwitchToLogin, onClose }) => {
       </div>
     </div>
   );
-}
+};
 
 export default SignupForm;
