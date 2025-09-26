@@ -15,9 +15,9 @@ const validation = {
             errors.push("Password must be at least six characters long")
         }
 
-        if(username || !/^[a-zA-Z0-9_]+$/.test(username)){ // dollar sign asserts the end of the string
-            errors.push("Username can only contain letters, numbers, and underscores")
-        }
+       if(username && !/^[a-zA-Z0-9_]+$/.test(username)){
+        errors.push("Username can only contain letters, numbers, and underscores")
+    }
 
         if(errors.length>0){
             return res.status(400).json({error: errors.join(',')}) // json object with the name error
