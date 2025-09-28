@@ -55,7 +55,7 @@ export const apiService = {
   getPredictionEligiblePlayers: () => api.get('/players/prediction-eligible'),
   
   // Leaderboard
-  getLeaderboard: (timeframe = 'weekly', limit = 10) => api.get(`/leaderboard/global?stat=accuracy&limit=${limit}`),
+  getLeaderboard: (timeframe = 'weekly', limit = 10) => api.get(`/leaderboard?stat=accuracy&limit=${limit}`),
 
   getUserStats: (userId) => api.get(`/users/${userId}/stats`),
 
