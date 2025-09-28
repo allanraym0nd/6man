@@ -1,60 +1,57 @@
-import React, {useState, useEffect} from 'react'
+// src/components/dashboard/UserPredictionCard.jsx
+import React, { useState, useEffect } from 'react';
 import { X, Plus } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 
-const UserPredictionCard = ({userPredictions, games, onRefresh }) => {
-    const {user} = useAuth()
-    const [predictions, setPredictions] = useState([]);
-    const [players, setPlayers] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error,setError] = useState(null)
+const UserPredictionCard = ({ games, userPredictions, onRefresh }) => {
+  const { user } = useAuth();
+  const [predictions, setPredictions] = useState([]);
+  const [players, setPlayers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-    useEffect(() => {
-        loadPlayers()
-        initializePredictions()
-    },[userPredictions, games])
+  useEffect(() => {
+    loadPlayers();
+    initializePredictions();
+  }, [userPredictions, games]);
 
-const loadPlayers = async() =>{ 
-    try { 
-    const response = await apiService.getPredictionEligiblePlayers()
-    setPlayers(response.data.players || [])
-     } catch(err) {
-        console.log("Failed to load players", err)
-    
-     }
-}
+  const loadPlayers = async () => {
+    try {
+      const response = await apiService.getPredictionEligiblePlayers();
+      setPlayers(response.data.players || []);
+    } catch (err) {
+      console.error('Failed to load players:', err);
+    }
+  };
 
-const initializePredictions = async() => {
-    if(userPredictions && userPredictions > 0) {
-        const formattedPredictions = userPredictions.map(pred => ({
-            id: pred._id,
-            playerId: pred.player.id,
-            gameId: pred.gameId,
-            points: pred.predictions.points || '',
-            rebounds: pred.predictions.rebounds || '',
-            assists: pred.predictions.assists || '',
-            isExisting:true
-        }))
-        setPredictions(formattedPredictions)
-
-    } else { 
-        setPredictions([ {
+  const initializePredictions = () => {
+    if (userPredictions && userPredictions.length > 0) {
+      const formattedPredictions = userPredictions.map(pred => ({
+        id: pred._id,
+        playerId: pred.player.id,
+        gameId: pred.gameId,
+        points: pred.predictions.points || '',
+        rebounds: pred.predictions.rebounds || '',
+        assists: pred.predictions.assists || '',
+        isExisting: true
+      }));
+      setPredictions(formattedPredictions);
+    } else {
+      // Start with one empty prediction row
+      setPredictions([{
         id: Date.now(),
         playerId: '',
         gameId: '',
         points: '',
         rebounds: '',
         assists: '',
-       isExisting: false
-
-        }])
-   
-
+        isExisting: false
+      }]);
     }
-}
+  };
 
-const addPrediction = () => {
+  const addPrediction = () => {
     setPredictions([...predictions, {
       id: Date.now(),
       playerId: '',
@@ -63,45 +60,45 @@ const addPrediction = () => {
       rebounds: '',
       assists: '',
       isExisting: false
-    }])
-}
+    }]);
+  };
 
-const removePrediction = (id) => {
-    if(predictions.length > 1) {
-        setPredictions(predictions.filter(pred => pred.id !== id))
+  const removePrediction = (id) => {
+    if (predictions.length > 1) {
+      setPredictions(predictions.filter(pred => pred.id !== id));
     }
-}
+  };
 
-const updatePrediction = ({id,field,value}) => {
+  const updatePrediction = (id, field, value) => {
     setPredictions(predictions.map(pred => 
-        pred.id === id ? {...pred, [field]: value} : pred
-    ))
-}
+      pred.id === id ? { ...pred, [field]: value } : pred
+    ));
+  };
 
-const getPlayerGameOptions = () => {
-    const options = []
+  const getPlayerGameOptions = () => {
+    const options = [];
+    games.forEach(game => {
+      players.forEach(player => {
+        // Check if player's team is in this game
+        if (player.team?.abbreviation === game.homeTeam.abbreviation || 
+            player.team?.abbreviation === game.awayTeam.abbreviation) {
+          options.push({
+            value: `${player.playerId}-${game.gameId}`,
+            label: `${player.fullName} - ${game.awayTeam.abbreviation} @ ${game.homeTeam.abbreviation}`,
+            playerId: player.playerId,
+            gameId: game.gameId,
+            gameDate: game.gameDate
+          });
+        }
+      });
+    });
+    return options;
+  };
 
-    games.forEach(game => { 
-        players.forEach(player => {
-            if(player.team?.abbreviation === game.homeTeam.abbreviation || 
-            player.team?.abbreviation === game.awayTeam.abbreviation){
-                options.push({
-                    value: `${player.playerId}-${game.gameId}`,
-                    label: `${player.fullName} - ${game.awayTeam.abbreviation} @ ${game.homeTeam.abbreviation}`,
-                    playerId: player.playerId,
-                    gameId: game.gameId,
-                    gameDate: game.gameDate
-                })
-            }
-        })
-    })
-return options;
-}
-
-const handleSubmit = async() => {
+  const handleSubmit = async () => {
     const validPredictions = predictions.filter(pred => 
-        pred.playerId && pred.gameId && (pred.points || pred.rebounds || pred.assists)
-    )
+      pred.playerId && pred.gameId && (pred.points || pred.rebounds || pred.assists)
+    );
 
     if (validPredictions.length === 0) {
       setError('Please add at least one prediction with player and stats');
@@ -111,39 +108,41 @@ const handleSubmit = async() => {
     setLoading(true);
     setError(null);
 
-    try{
-        const playerGameOptions = getPlayerGameOptions()
-
-        for(const pred of validPredictions){
-            if(!pred.isExisting) {
-                const options = playerGameOptions.find(opt => 
-                    opt.value === `${pred.playerId}-${pred.gameId}`
-                )
-
-         const predictionData = {
+    try {
+      const playerGameOptions = getPlayerGameOptions();
+      
+      for (const pred of validPredictions) {
+        if (!pred.isExisting) {
+          const option = playerGameOptions.find(opt => 
+            opt.value === `${pred.playerId}-${pred.gameId}`
+          );
+          
+          const predictionData = {
             gameId: pred.gameId,
+            gameDate: option?.gameDate || new Date().toISOString(),
             playerId: pred.playerId,
             predictions: {
               points: parseInt(pred.points) || 0,
               rebounds: parseInt(pred.rebounds) || 0,
               assists: parseInt(pred.assists) || 0
             }
-         }
-                await apiService.createUserPrediction(predictionData)
+          };
+
+          await apiService.createUserPrediction(predictionData);
         }
-    }
+      }
+
       onRefresh();
       setError(null);
-
-    }catch(err) {
+    } catch (err) {
       console.error('Failed to submit predictions:', err);
       setError(err.response?.data?.error || 'Failed to submit predictions');
     } finally {
       setLoading(false);
     }
-} 
+  };
 
-const clearAll = () => {
+  const clearAll = () => {
     setPredictions([{
       id: Date.now(),
       playerId: '',
@@ -152,12 +151,12 @@ const clearAll = () => {
       rebounds: '',
       assists: '',
       isExisting: false
+    }]);
+  };
 
-}])
-}
- const playerGameOptions = getPlayerGameOptions();
+  const playerGameOptions = getPlayerGameOptions();
 
- return (
+  return (
     <div className="card user-prediction-panel">
       <div className="card-header">
         <div>
@@ -329,10 +328,7 @@ const clearAll = () => {
         </button>
       </div>
     </div>
- )
+  );
+};
 
-
-
-
-
-}
+export default UserPredictionCard;
