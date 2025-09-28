@@ -213,3 +213,5 @@ const LeaderboardCard = ({leaderboard}) => {
     </div>
   );
 }
+
+export default LeaderboardCard;
