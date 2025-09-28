@@ -8,6 +8,7 @@ const authReducer = (state,action) => {
         case 'LOGIN_START':
             return {...state, loading:true, error:null};
         case 'LOGIN_SUCCESS':
+             console.log('Auth context - login success:', action.payload);
             return {
                 ...state, 
                 loading:false,
