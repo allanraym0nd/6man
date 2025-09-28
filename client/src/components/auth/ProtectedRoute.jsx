@@ -2,15 +2,18 @@ import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import AuthModal from './AuthModal';
 
-const ProtectedRoute = ({children}) => {
-    const {isAuthenticated} = useAuth()
+// In ProtectedRoute.jsx
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  
+  console.log('ProtectedRoute - isAuthenticated:', isAuthenticated); // Add this
+  
+  if (!isAuthenticated) {
+    return <AuthModal isOpen={true} onClose={() => {}} />;
+  }
 
-    if(!isAuthenticated) {
-        return <AuthModal isOpen={true} onClose={() => {}}/>
-    }
-
-    return children 
-
-}
+  console.log('ProtectedRoute - rendering children'); // Add this
+  return children;
+};
 
 export default ProtectedRoute;
