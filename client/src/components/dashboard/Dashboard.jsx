@@ -36,7 +36,7 @@ const Dashboard = () => {
         pointsLeadersRes,
         reboundsLeadersRes,
         assistsLeadersRes,
-        leaderboardRes,
+        // leaderboardRes,
         eastStandingsRes,
         westStandingsRes
       ] = await Promise.all([
@@ -45,7 +45,7 @@ const Dashboard = () => {
         apiService.getStatLeaders('points', 5),
         apiService.getStatLeaders('rebounds', 5),
         apiService.getStatLeaders('assists', 5),
-        apiService.getLeaderboard('weekly', 10),
+        // apiService.getLeaderboard('weekly', 10),
         apiService.getStandings('East'),
         apiService.getStandings('West')
       ]);
@@ -58,7 +58,7 @@ const Dashboard = () => {
           rebounds: reboundsLeadersRes.data.leaders || [],
           assists: assistsLeadersRes.data.leaders || []
         },
-        leaderboard: leaderboardRes.data.leaderboard || [],
+        // leaderboard: leaderboardRes.data.leaderboard || [],
         standings: {
           east: eastStandingsRes.data.standings || [],
           west: westStandingsRes.data.standings || []
@@ -117,7 +117,7 @@ const Dashboard = () => {
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f1419 100%)' }}>
-      <Header />
+      
       
       <div className="container" style={{ paddingTop: '24px', paddingBottom: '24px' }}>
         <div className="dashboard-grid">
@@ -150,7 +150,7 @@ const Dashboard = () => {
 
         {/* Bottom Section */}
         <div className="bottom-grid">
-          <StandingsPerformanceCard 
+          <StandingsCard 
             standings={dashboardData.standings}
             userStats={dashboardData.userStats}
           />
