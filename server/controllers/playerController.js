@@ -198,20 +198,22 @@ const playerController = {
     // GET /api/players/prediction-eligible
     getPredictionEligiblePlayers: async (req, res) => {
         try {
-            const { team, position, minGames = 5 } = req.query;
+            const { team, position, minGames = 0 } = req.query;
 
             const filter = {
-                isPredictionEligible: true,
+                // isPredictionEligible: true,
                 status: 'active',
-                'seasonStats.gamesPlayed': { $gte: parseInt(minGames) }
+                // 'seasonStats.gamesPlayed': { $gte: parseInt(minGames) }
             };
 
             if (team) filter['team.abbreviation'] = team;
             if (position) filter.position = position;
 
             const players = await Player.find(filter)
+                .limit(50)
                 .select('playerId fullName team position seasonStats.averages recentForm')
                 .sort({ 'seasonStats.averages.points': -1 });
+                
 
             res.json({
                 players,
