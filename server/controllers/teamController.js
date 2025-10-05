@@ -41,20 +41,30 @@ const teamController = {
     },
 
     // GET /api/teams/standings/:conference
-    getStandings: async (req, res) => {
-        try {
-            const { conference } = req.params;
-            const { season = '2024-25' } = req.query;
+ getStandings: async (req, res) => {
+    try {
+        const { conference } = req.params;
+        const { season = '2024-25' } = req.query;
 
-            
+        // Map API conference names to DB conference names
+        const conferenceMap = {
+            'East': 'Eastern',
+            'West': 'Western'
+        };
+        const dbConference = conferenceMap[conference] || conference;
+
+        console.log('Searching for conference:', dbConference); // Debug
+
+        // Try to fetch from NBA API (will fail during off-season)
+        try {
             const standingsData = await sportsDataService.getStandings(season);
             
             // Update local teams with fresh data
             for (const standingRow of standingsData) {
-                const teamId = standingRow[0]; // TEAM_ID
-                const wins = standingRow[8]; // W
-                const losses = standingRow[9]; // L
-                const winPct = standingRow[10]; // W_PCT
+                const teamId = standingRow[0];
+                const wins = standingRow[8];
+                const losses = standingRow[9];
+                const winPct = standingRow[10];
 
                 await Team.findOneAndUpdate(
                     { teamId: teamId.toString() },
@@ -65,61 +75,43 @@ const teamController = {
                     }
                 );
             }
-
-            // updated teams from local DB
-            const teams = await Team.find({
-                isActive: true,
-                conference: conference
-            }).sort({
-                'currentSeason.record.winPercentage': -1,
-                'currentSeason.record.wins': -1
-            });
-            
-            res.json({
-                conference,
-                season,
-                standings: teams.map((team, index) => ({
-                    rank: index + 1,
-                    team: {
-                        id: team.teamId,
-                        name: team.name,
-                        abbreviation: team.abbreviation,
-                        logo: team.logo
-                    },
-                    record: team.currentSeason.record,
-                    division: team.division
-                })),
-                source: 'live'
-            });
-
-        } catch (error) {
-            // Fallback to cached data
-            const teams = await Team.find({
-                isActive: true,
-                conference: req.params.conference
-            }).sort({
-                'currentSeason.record.winPercentage': -1,
-                'currentSeason.record.wins': -1
-            });
-
-            res.json({
-                conference: req.params.conference,
-                season: req.query.season || 'current',
-                standings: teams.map((team, index) => ({
-                    rank: index + 1,
-                    team: {
-                        id: team.teamId,
-                        name: team.name,
-                        abbreviation: team.abbreviation,
-                        logo: team.logo
-                    },
-                    record: team.currentSeason.record,
-                    division: team.division
-                })),
-                source: 'cached'
-            });
+        } catch (syncError) {
+            console.log('NBA API sync failed (expected during off-season):', syncError.message);
         }
-    },
+
+        // Get teams from local DB (works whether NBA API succeeded or not)
+        const teams = await Team.find({
+            isActive: true,
+            conference: dbConference
+        }).sort({
+            'currentSeason.record.winPercentage': -1,
+            'currentSeason.record.wins': -1
+        });
+
+        console.log('Found teams:', teams.length); // Debug
+
+        res.json({
+            conference,
+            season,
+            standings: teams.map((team, index) => ({
+                rank: index + 1,
+                team: {
+                    id: team.teamId,
+                    name: team.name,
+                    abbreviation: team.abbreviation,
+                    logo: team.logo
+                },
+                record: team.currentSeason?.record || { wins: 0, losses: 0, winPercentage: 0 },
+                division: team.division
+            })),
+            source: 'cached'
+        });
+
+    } catch (error) {
+        console.error('Standings error:', error);
+        res.status(500).json({ error: error.message });
+    }
+},
 
     // GET /api/teams/divisions/:division/standings
     getDivisionStandings: async (req, res) => {
