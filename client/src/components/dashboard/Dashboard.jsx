@@ -49,7 +49,10 @@ const Dashboard = () => {
         apiService.getStandings('East'),
         apiService.getStandings('West')
       ]);
-
+      
+      console.log('East standings response:', eastStandingsRes.data); 
+      console.log('West standings response:', westStandingsRes.data); 
+      
       setDashboardData({
         aiPredictions: aiPredictionsRes.data.predictions || [],
         todaysGames: todaysGamesRes.data.games || [],
