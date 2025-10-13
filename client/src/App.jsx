@@ -4,6 +4,8 @@ import { AuthProvider } from './contexts/AuthContext'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import './styles/globals.css';
 import Dashboard from './components/dashboard/Dashboard';
+import LeaguesDashboard from './components/leagues/LeagueDashboard';
+import LeagueDetail from './components/leagues/LeagueDetails';
 
 function App() {
     console.log('App component rendering');
@@ -21,7 +23,7 @@ function App() {
               </ProtectedRoute>  
             }
             />
-              {/* 
+              
             <Route 
               path="/leagues" 
               element={
@@ -30,7 +32,16 @@ function App() {
                 </ProtectedRoute>
               } 
             /> 
-            */}
+
+            <Route 
+              path="/leagues/:id" 
+              element={
+                <ProtectedRoute>
+                  <LeagueDetail />
+                </ProtectedRoute>
+              } 
+            />
+           
           </Routes>
         </div>
       </Router>

@@ -62,6 +62,16 @@ export const apiService = {
   
   createAIPrediction: (predictionData) => api.post('/predictions/ai', predictionData),
 
+  // Leagues/Competitions
+  getCompetitions: (type) => api.get(`/competitions${type ? `?type=${type}` : ''}`),
+  getCompetitionById: (id) => api.get(`/competitions/${id}`),
+  createCompetition: (competitionData) => api.post('/competitions', competitionData),
+  joinCompetition: (id) => api.post(`/competitions/${id}/join`),
+  leaveCompetition: (id) => api.post(`/competitions/${id}/leave`),
+  updateCompetition: (id, data) => api.put(`/competitions/${id}`, data),
+  removeCompetitionMember: (id, userId) => api.delete(`/competitions/${id}/members/${userId}`),
+  getLeagueLeaderboard: (id, limit = 50) => api.get(`/leaderboards/league/${id}?limit=${limit}`),
+
 };
 
 export default api; 
