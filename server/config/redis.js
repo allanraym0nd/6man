@@ -57,7 +57,7 @@ class RedisClient {
         if(!this.isConnected) return null
 
         try {
-            const result = await this.client.get(key) // a fundamental operation in any key-value database.
+            const result = await this.client.get(key) // (key-value db)
             return result ? JSON.parse(result) : null; 
 
         }catch(error){ 
@@ -69,7 +69,7 @@ class RedisClient {
     async set(key,value, ttl=3600) {
         if (!this.isConnected) return false;
         try{
-            await this.client.setex(key, ttl, JSON.stringify(value))
+            await this.client.setex(key, ttl, JSON.stringify(value)) // stores data. "set this key w a value"
             return true; 
         }catch(error){
              console.error('Redis set error:', error);
@@ -91,7 +91,7 @@ class RedisClient {
          if (!this.isConnected) return {count:0 , ttl: 0}
 
          try{ 
-            const multi = this.client.multi()
+            const multi = this.client.multi() // multi begins a redis transaction. -> ensures no race conditions when multiple requests hit at the same time.
             multi.incr(key)
             multi.expire(key,window)
             const results = await multi.exec()

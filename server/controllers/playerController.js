@@ -41,7 +41,7 @@ const playerController = {
         try {
             const { name } = req.params;
             
-            // NBA.com search
+            
             const nbaResults = await sportsDataService.searchPlayer(name);
             
             if (nbaResults.length > 0) {
@@ -68,7 +68,7 @@ const playerController = {
                 }
             }
 
-            // Get from local DB (now updated)
+            // Get from local DB 
             const localResults = await Player.find({
                 $text: { $search: name }
             }).limit(10);
@@ -227,44 +227,47 @@ const playerController = {
     },
 
     // GET /api/players/leaders/:stat
-    getStatLeaders: async (req, res) => {
-        try {
-            const { stat } = req.params;
-            const { limit = 10, minGames = 10 } = req.query;
+   getStatLeaders: async (req, res) => {
+    try {
+        const { stat } = req.params;
+        const { limit = 10 } = req.query;
 
-            const validStats = ['points', 'rebounds', 'assists', 'steals', 'blocks'];
-            if (!validStats.includes(stat)) {
-                return res.status(400).json({ error: 'Invalid stat parameter' });
-            }
+        // For now, just return players sorted by any existing stats
+        const leaders = await Player.find({
+            status: 'active',
+            [`seasonStats.averages.${stat}`]: { $exists: true }
+        })
+            .select('playerId fullName team position seasonStats.averages')
+            .sort({ [`seasonStats.averages.${stat}`]: -1 })
+            .limit(parseInt(limit));
 
-            const sortField = `seasonStats.averages.${stat}`;
-
-            const leaders = await Player.find({
-                status: 'active',
-                'seasonStats.gamesPlayed': { $gte: parseInt(minGames) }
-            })
-                .select('playerId fullName team position seasonStats.averages')
-                .sort({ [sortField]: -1 })
-                .limit(parseInt(limit));
-
-            res.json({
+        // If no players have stats yet, return empty with helpful message
+        if (leaders.length === 0 || leaders.every(p => p.seasonStats.averages[stat] === 0)) {
+            return res.json({
                 stat,
-                leaders: leaders.map((player, index) => ({
-                    rank: index + 1,
-                    player: {
-                        id: player.playerId,
-                        name: player.fullName,
-                        team: player.team,
-                        position: player.position
-                    },
-                    average: player.seasonStats.averages[stat]
-                }))
+                leaders: [],
+                message: 'Player stats will update once NBA season begins'
             });
-
-        } catch (error) {
-            res.status(500).json({ error: error.message });
         }
-    },
+
+        res.json({
+            stat,
+            leaders: leaders.map((player, index) => ({
+                rank: index + 1,
+                player: {
+                    id: player.playerId,
+                    name: player.fullName,
+                    team: player.team,
+                    position: player.position
+                },
+                average: player.seasonStats.averages[stat]
+            }))
+        });
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+},
 
     // Remaining CRUD methods stay the same
     createOrUpdatePlayer: async (req, res) => {

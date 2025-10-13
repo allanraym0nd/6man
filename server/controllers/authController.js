@@ -1,4 +1,3 @@
-// controllers/authController.js
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 
@@ -8,7 +7,7 @@ const authController = {
     try {
       const { username, email, password } = req.body; //  destructures the username, email, and password from the request body.
 
-      // Check if user already exists
+      
       const existingUser = await User.findOne({ 
         $or: [{ email }, { username }] // Queries the database to see if a user with the provided email OR username already exists. 
       });
@@ -37,7 +36,7 @@ const authController = {
           id: user._id,
           username: user.username,
           email: user.email,
-          stats: user.stats
+          // stats: user.stats
         }
       });
     } catch (error) {
@@ -50,13 +49,13 @@ const authController = {
     try {
       const { email, password } = req.body;
 
-      // Find user by email
+      
       const user = await User.findOne({ email });
       if (!user) {
         return res.status(400).json({ error: 'Invalid credentials' });
       }
 
-      // Check password
+      
       const isMatch = await user.comparePassword(password);
       if (!isMatch) {
         return res.status(400).json({ error: 'Invalid credentials' });
@@ -76,7 +75,7 @@ const authController = {
           id: user._id,
           username: user.username,
           email: user.email,
-          stats: user.stats
+          // stats: user.stats
         }
       });
     } catch (error) {

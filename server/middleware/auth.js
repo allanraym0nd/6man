@@ -24,4 +24,6 @@ const auth = async (req, res, next) => {
   }
 };
 
-export default auth;
+export default auth; 
+
+// file verifies existing and valid token

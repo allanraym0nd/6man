@@ -9,7 +9,7 @@ const competitionController = {
     try {
       const leagues = await CompetitionLeague.find({ 
         isActive: true, 
-        type: { $in: ['public', 'invite-only'] }  // filters the leagues to include only those with a type that is either 'public' or 'invite-only'.
+        type: { $in: ['public', 'invite-only'] } 
       })
       .populate('creator', 'username avatar') // replaces the ObjectId in the creator field 
 
@@ -21,7 +21,7 @@ const competitionController = {
     }
   },
 
-  // POST /api/competitions - Create new league
+  // POST /api/competitions
   createLeague: async (req, res) => {
     try {
       const { name, description, type, settings } = req.body;
@@ -115,7 +115,7 @@ const competitionController = {
         return res.status(404).json({ error: 'League not found' });
       }
 
-      // Get top members (leaderboard)
+      // Get top members 
       const members = await LeagueMembership.find({
         competitionLeague: req.params.id,
         status: 'active'
