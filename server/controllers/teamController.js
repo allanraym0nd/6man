@@ -46,16 +46,12 @@ const teamController = {
         const { conference } = req.params;
         const { season = '2024-25' } = req.query;
 
-        // Map API conference names to DB conference names
         const conferenceMap = {
             'East': 'Eastern',
             'West': 'Western'
         };
         const dbConference = conferenceMap[conference] || conference;
 
-        console.log('Searching for conference:', dbConference); // Debug
-
-        // Try to fetch from NBA API (will fail during off-season)
         try {
             const standingsData = await sportsDataService.getStandings(season);
             
@@ -79,7 +75,7 @@ const teamController = {
             console.log('NBA API sync failed (expected during off-season):', syncError.message);
         }
 
-        // Get teams from local DB (works whether NBA API succeeded or not)
+        // Get teams from local DB 
         const teams = await Team.find({
             isActive: true,
             conference: dbConference
@@ -87,8 +83,6 @@ const teamController = {
             'currentSeason.record.winPercentage': -1,
             'currentSeason.record.wins': -1
         });
-
-        console.log('Found teams:', teams.length); // Debug
 
         res.json({
             conference,

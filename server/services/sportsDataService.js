@@ -77,7 +77,7 @@ class SportsDataService {
     }
   }
 
-  // NEW: Get games by date
+  
   async getGamesByDate(date) {
     try {
       // Convert date to YYYY-MM-DD format if needed

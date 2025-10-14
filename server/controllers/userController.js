@@ -57,7 +57,7 @@ const userController = {
             type: 'user'
             });
 
-            // Get completed predictions (with results)
+            
             const completedPredictions = await Prediction.find({
             user: userId,
             type: 'user',
@@ -140,7 +140,7 @@ const userController = {
         }
     },
      
-        // get user prefomance
+        
      getPerformanceAnalytics: async (req, res) => {
         try {
             const userId = req.user.id;

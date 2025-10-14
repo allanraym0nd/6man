@@ -2,31 +2,32 @@ import Game from "../models/game.js";
 import sportsDataService from "../services/sportsDataService.js";
 
 const gameController = {
+
     // GET /api/games/today
     getTodaysGames: async (req, res) => {
         try {
             const today = new Date().toISOString().split('T')[0];
             
-            // live data from NBA.com
+           
             const nbaGamesData = await sportsDataService.getGamesByDate(today);
             
-            // Transform NBA data format to your Game model format
+            // NBA data format to Game model format
             const transformedGames = nbaGamesData.games.map(gameRow => ({
-                gameId: gameRow[2].toString(), // GAME_ID
+                gameId: gameRow[2].toString(), 
                 gameDate: new Date(),
-                gameTime: gameRow[4] || 'TBD', // GAME_TIME
+                gameTime: gameRow[4] || 'TBD',
                 homeTeam: {
-                    id: gameRow[6].toString(), // HOME_TEAM_ID
-                    name: gameRow[7], // HOME_TEAM_NAME
-                    abbreviation: gameRow[8] // HOME_TEAM_ABBR
+                    id: gameRow[6].toString(), 
+                    name: gameRow[7], 
+                    abbreviation: gameRow[8] 
                 },
                 awayTeam: {
-                    id: gameRow[9].toString(), // VISITOR_TEAM_ID
-                    name: gameRow[10], // VISITOR_TEAM_NAME
-                    abbreviation: gameRow[11] // VISITOR_TEAM_ABBR
+                    id: gameRow[9].toString(), 
+                    name: gameRow[10], 
+                    abbreviation: gameRow[11] 
                 },
                 status: gameRow[3] === 1 ? 'scheduled' : gameRow[3] === 2 ? 'live' : 'completed',
-                isPredictionActive: gameRow[3] === 1, // Only scheduled games
+                isPredictionActive: gameRow[3] === 1, 
                 predictionDeadline: new Date(Date.now() + 30 * 60 * 1000) // 30 mins before
             }));
 
@@ -46,6 +47,8 @@ const gameController = {
             });
 
         } catch (error) {
+
+
             // Fallback to local DB if NBA API fails
             const startOfDay = new Date();
             startOfDay.setHours(0,0,0,0);
@@ -67,6 +70,7 @@ const gameController = {
     },
 
     // GET /api/games/schedule
+
     getSchedule: async (req, res) => {
         try {
             const { startDate, endDate, team, status } = req.query;
@@ -141,9 +145,10 @@ const gameController = {
     },
 
     // GET /api/games/:gameId
+
     getGameById: async (req, res) => {
         try {
-            // Try local DB first
+           
             let game = await Game.findOne({ gameId: req.params.gameId });
             
             if (!game) {
@@ -158,12 +163,13 @@ const gameController = {
     },
 
     // GET /api/games/live
+
     getLiveGames: async (req, res) => {
         try {
             const today = new Date().toISOString().split('T')[0];
             const nbaGamesData = await sportsDataService.getGamesByDate(today);
             
-            // Filter for only live games
+           
             const liveGames = nbaGamesData.games
                 .filter(gameRow => gameRow[3] === 2) // Live status
                 .map(gameRow => ({
@@ -188,6 +194,7 @@ const gameController = {
             });
 
         } catch (error) {
+
             // Fallback to local DB
             const liveGames = await Game.find({ status: 'live' })
                 .sort({ gameDate: 1 });
@@ -200,7 +207,8 @@ const gameController = {
         }
     },
 
-    // POST /api/games - Create/update game
+    // POST /api/games 
+
     createOrUpdateGame: async (req, res) => {
         try {
             const gameData = req.body;
@@ -225,6 +233,7 @@ const gameController = {
     },
 
     // PUT /api/games/:gameId/result
+    
     updateGameResult: async (req, res) => {
         try {
             const { gameId } = req.params;
@@ -255,6 +264,7 @@ const gameController = {
     },
 
     // GET /api/games/predictions-active
+    
     getPredictionActiveGames: async (req, res) => {
         try {
             const today = new Date().toISOString().split('T')[0];

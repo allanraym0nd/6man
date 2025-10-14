@@ -45,7 +45,7 @@ const playerController = {
             const nbaResults = await sportsDataService.searchPlayer(name);
             
             if (nbaResults.length > 0) {
-                // Transform NBA data and sync to local DB
+               
                 for (const playerRow of nbaResults) {
                     const playerData = {
                         playerId: playerRow[0].toString(),
@@ -76,7 +76,7 @@ const playerController = {
             res.json({
                 query: name,
                 results: localResults,
-                total: localResults.length,
+                total: localResults.length, 
                 source: nbaResults.length > 0 ? 'live' : 'cached'
             });
 
@@ -94,11 +94,11 @@ const playerController = {
             try {
                 const playerDetails = await sportsDataService.getPlayerById(playerId);
                 if (playerDetails) {
+
                     // Update local player data
                     await Player.findOneAndUpdate(
                         { playerId },
-                        {
-                            // Update with fresh NBA data if available
+                        {      
                             status: 'active' 
                         }
                     );
@@ -232,7 +232,7 @@ const playerController = {
         const { stat } = req.params;
         const { limit = 10 } = req.query;
 
-        // For now, just return players sorted by any existing stats
+       
         const leaders = await Player.find({
             status: 'active',
             [`seasonStats.averages.${stat}`]: { $exists: true }
@@ -269,7 +269,7 @@ const playerController = {
     }
 },
 
-    // Remaining CRUD methods stay the same
+    
     createOrUpdatePlayer: async (req, res) => {
         try {
             const playerData = req.body;

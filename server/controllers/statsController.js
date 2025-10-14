@@ -73,7 +73,7 @@ const statsController = {
 
    
       const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7); // This creates a Date object representing exactly seven days ago.
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7); // date object
       
       const dailyVolume = await Prediction.aggregate([
         { $match: { createdAt: { $gte: sevenDaysAgo }, type: 'user' } },
