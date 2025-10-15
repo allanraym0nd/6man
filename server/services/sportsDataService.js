@@ -84,7 +84,7 @@ class SportsDataService {
       let gameDate;
       if (typeof date === 'string') {
         gameDate = date.replace(/-/g, ''); // Remove dashes for NBA API
-      } else if (date instanceof Date) {
+      } else if (date instanceof Date) { // Checks whether date is an actual Date object.
         gameDate = date.toISOString().split('T')[0].replace(/-/g, '');
       } else {
         // Default to today
@@ -115,7 +115,6 @@ class SportsDataService {
     }
   }
 
-  // NEW: Search for a specific player
   async searchPlayer(playerName) {
     try {
       const response = await axios.get(`${this.nbaBaseURL}/commonallplayers`, {
@@ -131,7 +130,7 @@ class SportsDataService {
       
       // Search for players matching the name
       const searchResults = allPlayers.filter(playerRow => {
-        const fullName = playerRow[2]; // DISPLAY_FIRST_LAST
+        const fullName = playerRow[2]; 
         return fullName && fullName.toLowerCase().includes(playerName.toLowerCase());
       });
       

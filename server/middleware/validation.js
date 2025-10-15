@@ -189,14 +189,15 @@ const validation = {
          next();
 
      },
-     // Validate MongoDB ObjectId
+     // Validate MongoDB ObjectId - validating parameters
      validateObjectId: (paramName) => {
         return (req,res,next) =>{
             const id =req.params[paramName]
             const objectIdRegex = /^[0-9a-fA-F]{24}$/;
 
             if(!id || !objectIdRegex.test(id)){
-                res.status(400).json({error: `Invalid ${paramName} format`})
+
+                return res.status(400).json({error: `Invalid ${paramName} format`})
             }
             next()
         }     

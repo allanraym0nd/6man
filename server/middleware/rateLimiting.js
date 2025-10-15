@@ -73,7 +73,8 @@ const createRedisRateLimit = (redisClient) => { // the redisClient object is the
 
 const adaptiveRateLimit = redisClient.isConnected 
     ? createRedisRateLimit 
-    : generalRateLimit
+    : generalRateLimit 
+     // lmaoo
 
 export {
     generalRateLimit,

@@ -49,7 +49,7 @@ const errorHandler = (err,req,res,next) =>{
         success:false,
         error:{
             message: error.message || 'Server Error',
-            ...(process.env.NODE_ENV === 'development' && {stack: err.stack}) 
+            ...(process.env.NODE_ENV === 'development' && {stack: err.stack})  // the stack says:  If we’re in development mode, include the stack trace in the JSON.
         }
 
     })

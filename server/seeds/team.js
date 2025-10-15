@@ -3,7 +3,6 @@ import mongoose from "mongoose";
 import sportsDataService from "../services/sportsDataService.js";
 import {connectDb} from '../config/connectDB.js';
 
-// NBA team mappings
 const teamMappings = {
   'Atlanta Hawks': { city: 'Atlanta', division: 'Southeast', conference: 'Eastern' },
   'Boston Celtics': { city: 'Boston', division: 'Atlantic', conference: 'Eastern' },
@@ -39,16 +38,13 @@ const teamMappings = {
 
 const seedTeams = async() => {
   try {
-    console.log('Fetching NBA teams from NBA.com official API...');
-    const teamsData = await sportsDataService.getTeams();
-    console.log('Raw teams data length:', teamsData.length);
-    console.log('First team raw data:', teamsData[0]);
     
-    console.log('Clearing existing teams...');
+    const teamsData = await sportsDataService.getTeams();
+   
     await Team.deleteMany({});
     
     const transformedTeams = teamsData.map(teamRow => {
-      // NBA.com returns arrays: [TEAM_ID, TEAM_NAME, GP, W, L, W_PCT, ...]
+     
       const teamId = teamRow[0];
       const teamName = teamRow[1];
       const gamesPlayed = teamRow[2] || 0;
@@ -56,14 +52,13 @@ const seedTeams = async() => {
       const losses = teamRow[4] || 0;
       const winPct = teamRow[5] || 0;
       
-      // Get team info from mapping
+  
       const teamInfo = teamMappings[teamName] || {
         city: teamName.split(' ')[0],
         division: 'Atlantic',
         conference: 'Eastern'
       };
       
-      // Generate abbreviation from team name
       const words = teamName.split(' ');
       let abbreviation;
       if (words.length >= 2) {
@@ -97,11 +92,7 @@ const seedTeams = async() => {
       };
     });
     
-    console.log('Sample transformed team:', JSON.stringify(transformedTeams[0], null, 2));
-    
-    console.log('Inserting new teams...');
     const teams = await Team.insertMany(transformedTeams);
-    console.log(`Successfully seeded ${teams.length} teams`);
     return teams;
   } catch(error) {
     console.error('Error seeding teams:', error);

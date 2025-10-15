@@ -2,7 +2,7 @@ import axios from "axios";
 
 class aiService {
     constructor() {
-        this.baseURL = 'http://localhost:8000'; // Fixed: removed the () and set the URL
+        this.baseURL = 'http://localhost:8000'; 
         this.client = axios.create({
             baseURL: this.baseURL,
             timeout: 10000,

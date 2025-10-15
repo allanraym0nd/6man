@@ -6,15 +6,12 @@ import {connectDb} from '../config/connectDB.js';
 const seedPlayers = async() => {
   try {
     console.log('Fetching NBA players from NBA.com official API...');
-    console.log('Clearing existing players...');
     await Player.deleteMany({});
 
     const playersData = await sportsDataService.getPlayers();
-    console.log('Raw players data length:', playersData.length);
-    console.log('First player raw data:', playersData[0]);
 
     const transformedPlayers = playersData.map(playerRow => {
-      // NBA.com returns arrays: [PERSON_ID, DISPLAY_LAST_COMMA_FIRST, DISPLAY_FIRST_LAST, ROSTERSTATUS, FROM_YEAR, TO_YEAR, PLAYERCODE, TEAM_ID, TEAM_CITY, TEAM_NAME, TEAM_ABBREVIATION, TEAM_CODE, GAMES_PLAYED_FLAG]
+      
       const personId = playerRow[0];
       const lastCommaFirst = playerRow[1] || '';
       const firstLast = playerRow[2] || '';
@@ -83,10 +80,6 @@ const seedPlayers = async() => {
 
     // Filter for only active players
     const activePlayers = transformedPlayers.filter(player => player.status === 'active');
-
-    console.log(`Total players from API: ${transformedPlayers.length}`);
-    console.log(`Active players to insert: ${activePlayers.length}`);
-    console.log('Sample transformed player:', JSON.stringify(activePlayers[0], null, 2));
 
     const players = await Player.insertMany(activePlayers);
     console.log(`Successfully seeded ${players.length} current NBA players`);
