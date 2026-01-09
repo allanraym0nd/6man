@@ -1,4 +1,4 @@
-import React, {useState,useEffect} from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { apiService } from "../../services/api";
 // import Header from '../common/Header';
@@ -8,6 +8,7 @@ import StatsLeadersCard from './StatsLeadersCard';
 import LeaderboardCard from "./LeaderBoard";
 import RecentPredictionsCard from "./RecentPredictions";
 import StandingsCard from "./StandingsPerformanceCard";
+import Navbar from "../common/NavBar";
 
 const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState({
@@ -29,7 +30,7 @@ const Dashboard = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      
+
       const [
         aiPredictionsRes,
         todaysGamesRes,
@@ -49,10 +50,10 @@ const Dashboard = () => {
         apiService.getStandings('East'),
         apiService.getStandings('West')
       ]);
-      
-      console.log('East standings response:', eastStandingsRes.data); 
-      console.log('West standings response:', westStandingsRes.data); 
-      
+
+      console.log('East standings response:', eastStandingsRes.data);
+      console.log('West standings response:', westStandingsRes.data);
+
       setDashboardData({
         aiPredictions: aiPredictionsRes.data.predictions || [],
         todaysGames: todaysGamesRes.data.games || [],
@@ -74,7 +75,7 @@ const Dashboard = () => {
           rank: 126
         }
       });
-      
+
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
       setError('Failed to load dashboard data');
@@ -85,10 +86,10 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'center',
         background: 'linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f1419 100%)'
       }}>
@@ -99,16 +100,16 @@ const Dashboard = () => {
 
   if (error) {
     return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'column',
         background: 'linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f1419 100%)'
       }}>
         <div style={{ color: '#ef4444', fontSize: '20px', marginBottom: '16px' }}>{error}</div>
-        <button 
+        <button
           onClick={loadDashboardData}
           className="btn-primary"
         >
@@ -120,17 +121,17 @@ const Dashboard = () => {
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f1419 100%)' }}>
-      
-      
+      <Navbar />
+
       <div className="container" style={{ paddingTop: '24px', paddingBottom: '24px' }}>
         <div className="dashboard-grid">
           {/* Left Column - Predictions */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <AIPredictionCard 
+            <AIPredictionCard
               predictions={dashboardData.aiPredictions}
               onRefresh={loadDashboardData}
             />
-            <UserPredictionCard 
+            <UserPredictionCard
               games={dashboardData.todaysGames}
               onSubmitPrediction={loadDashboardData}
             />
@@ -144,7 +145,7 @@ const Dashboard = () => {
 
           {/* Right Column - Sidebar */}
           <div>
-            <RecentPredictionsCard 
+            <RecentPredictionsCard
               predictions={dashboardData.recentPredictions}
               userStats={dashboardData.userStats}
             />
@@ -153,7 +154,7 @@ const Dashboard = () => {
 
         {/* Bottom Section */}
         <div className="bottom-grid">
-          <StandingsCard 
+          <StandingsCard
             standings={dashboardData.standings}
             userStats={dashboardData.userStats}
           />
