@@ -5,6 +5,7 @@ import { apiService } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import LeagueCard from './LeagueCard';
 import CreateLeagueModal from './LeagueModal';
+import Navbar from '../common/NavBar';
 
 const LeaguesDashboard = () => {
   const navigate = useNavigate();
@@ -20,63 +21,63 @@ const LeaguesDashboard = () => {
   }, []);
 
   const loadLeagues = async () => {
-  try {
-    setLoading(true);
-    console.log('Loading leagues...');
-    
-    const allLeaguesRes = await apiService.getCompetitions();
-    console.log('API response:', allLeaguesRes.data);
-    
-    // The response is directly an array, not nested in .competitions or .leagues
-    const leaguesArray = Array.isArray(allLeaguesRes.data) 
-      ? allLeaguesRes.data 
-      : (allLeaguesRes.data.competitions || allLeaguesRes.data.leagues || []);
-    
-    setLeagues({
-      all: leaguesArray,
-      my: [] // Will fix this later
-    });
-    
-    console.log('Leagues set:', leaguesArray);
-  } catch (err) {
-    console.error('Failed to load leagues:', err);
-    console.error('Error details:', err.response?.data);
-    setError('Failed to load leagues');
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      setLoading(true);
+      console.log('Loading leagues...');
+
+      const allLeaguesRes = await apiService.getCompetitions();
+      console.log('API response:', allLeaguesRes.data);
+
+      // The response is directly an array, not nested in .competitions or .leagues
+      const leaguesArray = Array.isArray(allLeaguesRes.data)
+        ? allLeaguesRes.data
+        : (allLeaguesRes.data.competitions || allLeaguesRes.data.leagues || []);
+
+      setLeagues({
+        all: leaguesArray,
+        my: [] // Will fix this later
+      });
+
+      console.log('Leagues set:', leaguesArray);
+    } catch (err) {
+      console.error('Failed to load leagues:', err);
+      console.error('Error details:', err.response?.data);
+      setError('Failed to load leagues');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleViewLeague = (leagueId) => {
     navigate(`/leagues/${leagueId}`);
   };
 
-const handleLeagueCreated = (newLeague) => {
-  
-  
-  if (!newLeague || !newLeague._id) {
-    console.error('Invalid league data received');
-    return;
-  }
-  
-  setLeagues(prev => ({
-    all: [newLeague, ...prev.all],
-    my: [newLeague, ...prev.my]
-  }));
-};
+  const handleLeagueCreated = (newLeague) => {
+
+
+    if (!newLeague || !newLeague._id) {
+      console.error('Invalid league data received');
+      return;
+    }
+
+    setLeagues(prev => ({
+      all: [newLeague, ...prev.all],
+      my: [newLeague, ...prev.my]
+    }));
+  };
 
   const displayedLeagues = activeTab === 'all' ? leagues.all : leagues.my;
   const myLeagueIds = new Set(
-  leagues.my.filter(l => l && l._id).map(l => l._id)
-);
+    leagues.my.filter(l => l && l._id).map(l => l._id)
+  );
 
 
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f1419 100%)' }}>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
           justifyContent: 'center',
           minHeight: 'calc(100vh - 80px)',
           color: 'white',
@@ -90,18 +91,18 @@ const handleLeagueCreated = (newLeague) => {
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f1419 100%)' }}>
-      
-      <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '32px 40px' }}>
-      
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
+      <Navbar />
+      <div style={{ maxWidth: "100 %", margin: '0 auto', padding: '32px 40px' }}>
+
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
           justifyContent: 'space-between',
           marginBottom: '32px'
         }}>
           <div>
-            <h1 style={{ 
-              fontSize: '36px', 
+            <h1 style={{
+              fontSize: '36px',
               fontWeight: '700',
               color: '#ffffff',
               margin: 0,
@@ -134,7 +135,7 @@ const handleLeagueCreated = (newLeague) => {
           </button>
         </div>
 
-        
+
         <div className="league-tabs">
           <button
             onClick={() => setActiveTab('all')}
@@ -150,7 +151,7 @@ const handleLeagueCreated = (newLeague) => {
           </button>
         </div>
 
-       
+
         {error && (
           <div style={{
             background: 'rgba(239, 68, 68, 0.1)',
@@ -165,7 +166,7 @@ const handleLeagueCreated = (newLeague) => {
           </div>
         )}
 
-        
+
         {displayedLeagues.length > 0 ? (
           <div style={{
             display: 'grid',
@@ -188,8 +189,8 @@ const handleLeagueCreated = (newLeague) => {
               {activeTab === 'all' ? 'No leagues available' : 'You haven\'t joined any leagues yet'}
             </h3>
             <p className="empty-state-description">
-              {activeTab === 'all' 
-                ? 'Be the first to create a league!' 
+              {activeTab === 'all'
+                ? 'Be the first to create a league!'
                 : 'Browse available leagues or create your own'}
             </p>
           </div>
