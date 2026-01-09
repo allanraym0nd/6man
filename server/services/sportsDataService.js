@@ -141,7 +141,7 @@ class SportsDataService {
     }
   }
 
-  // NEW: Get player details by ID
+
   async getPlayerById(playerId) {
     try {
       const response = await axios.get(`${this.nbaBaseURL}/commonplayerinfo`, {
@@ -158,7 +158,7 @@ class SportsDataService {
     }
   }
 
-  // NEW: Get player stats for current season
+
   async getPlayerStats(playerId, season = '2024-25') {
     try {
       const response = await axios.get(`${this.nbaBaseURL}/playerdashboardbyyearoveryear`, {
@@ -171,14 +171,14 @@ class SportsDataService {
         }
       });
       
-      return response.data.resultSets[1].rowSet; // Season totals regular season
+      return response.data.resultSets[1].rowSet;
     } catch (error) {
       console.error('Error fetching player stats:', error.message);
       throw new Error('Failed to fetch player statistics');
     }
   }
 
-  // NEW: Get team schedule
+  
   async getTeamSchedule(teamId, season = '2024-25') {
     try {
       const response = await axios.get(`${this.nbaBaseURL}/teamgamelog`, {
@@ -197,7 +197,7 @@ class SportsDataService {
     }
   }
 
-  // NEW: Get live game data
+  
   async getLiveGames() {
     try {
       const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
@@ -221,7 +221,7 @@ class SportsDataService {
     }
   }
 
-  // NEW: Get standings
+  
   async getStandings(season = '2024-25') {
     try {
       const response = await axios.get(`${this.nbaBaseURL}/leaguestandingsv3`, {
@@ -240,7 +240,7 @@ class SportsDataService {
     }
   }
 
-  // Existing method - keep for compatibility
+  // Keeping existing method for compatibility
   async getTodaysGames() {
     return this.getLiveGames();
   }

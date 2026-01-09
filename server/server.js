@@ -68,7 +68,7 @@ app.use(adaptiveRateLimit);
 
 app.get('/api/test', (req, res) => {
   res.json({ 
-    message: 'SixthMan API is running! 🏀',
+    message: 'SixthMan API is running!',
     timestamp: new Date().toISOString(),
     status: 'success'
   });
